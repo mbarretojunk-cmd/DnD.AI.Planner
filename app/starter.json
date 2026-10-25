@@ -1,0 +1,1235 @@
+{
+ "app": "evenings-at-home",
+ "version": 1,
+ "kind": "starter",
+ "docs": {
+  "plans/2026-10-26": {
+   "got": {},
+   "recipes": [],
+   "skipped": true,
+   "steps": {},
+   "updatedAt": "2026-10-25T14:40:00Z",
+   "week": "2026-10-26"
+  },
+  "plans/2026-11-02": {
+   "brewed": {},
+   "dinners": [
+    {
+     "id": "d-piripiri",
+     "nights": 2
+    },
+    {
+     "id": "d-espetadas",
+     "nights": 2
+    },
+    {
+     "id": "d-ovos-grao",
+     "nights": 2
+    }
+   ],
+   "extras": [],
+   "got": {},
+   "recipes": [
+    {
+     "id": "l-grao-frango",
+     "portions": 3
+    },
+    {
+     "id": "l-sopa-lentilhas",
+     "portions": 2
+    }
+   ],
+   "steps": {},
+   "updatedAt": "2026-10-25T17:49:15.901Z",
+   "week": "2026-11-02"
+  },
+  "recipes/l-massa-brocolos": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 600,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "wholewheat pasta",
+     "qty": 250,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "broccoli",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Frozen",
+     "item": "frozen peas",
+     "qty": 200,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "lemons",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 3,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Dairy & eggs",
+     "item": "grated parmesan",
+     "qty": 40,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 3,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "lunch",
+   "minutes": 35,
+   "name": "Wholewheat pasta with chicken, broccoli and lemon",
+   "notes": "About 37 g of protein per box, with only 50 g of dry pasta each.",
+   "portions": 5,
+   "steps": [
+    "Cube the chicken, season with salt, garlic and a little oil, and air fry at 190 °C for 12–14 min.",
+    "Cook the pasta; add the broccoli florets and peas for the last 4 min.",
+    "Drain, then toss everything with the remaining oil, lemon zest and juice, and the parmesan.",
+    "Split into 5 boxes. Good warm or cold."
+   ]
+  },
+  "recipes/d-piripiri": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 400,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "broccoli",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chickpeas (400 g)",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Produce",
+     "item": "lemon",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 2,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "piri-piri or chilli flakes",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "smoked paprika",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 2,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "dinner",
+   "minutes": 20,
+   "name": "Air fryer piri-piri chicken with broccoli and chickpeas",
+   "notes": "About 55 g of protein per dinner.",
+   "portions": 2,
+   "steps": [
+    "Butterfly or halve the chicken breasts so they are evenly thin. Rub with oil, garlic, paprika, piri-piri, lemon juice and salt.",
+    "Toss the broccoli florets and drained chickpeas with a little oil and salt.",
+    "Air fry the chicken at 190 °C for 12–15 min, adding the broccoli and chickpeas for the last 8 min.",
+    "Eat half tonight; keep the rest in the fridge for tomorrow."
+   ]
+  },
+  "recipes/l-feijao-couve": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 750,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "white beans (400 g)",
+     "qty": 2,
+     "unit": "can"
+    },
+    {
+     "aisle": "Produce",
+     "fresh": true,
+     "item": "kale or couve",
+     "qty": 300,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "carrots",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 3,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chopped tomatoes",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "stock cube",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 2,
+     "staple": true,
+     "unit": "tbsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "smoked paprika",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "bay leaf",
+     "qty": 1,
+     "staple": true,
+     "unit": "pcs"
+    }
+   ],
+   "kind": "lunch",
+   "minutes": 45,
+   "name": "Chicken, white bean and kale stew",
+   "notes": "About 42 g of protein per box. A lighter take on feijoada: beans instead of rice, no fatty pork.",
+   "portions": 5,
+   "steps": [
+    "Dice the chicken, onion and carrots; slice the garlic; shred the kale and remove thick stems.",
+    "Brown the chicken in the oil, add the onion, carrot, garlic, paprika and bay leaf and cook 5 min.",
+    "Add the tomatoes, drained beans, stock cube and 400 ml of water. Simmer 20 min.",
+    "Stir in the kale for the last 5 min. Season (a little piri-piri is good here).",
+    "Split into 5 boxes. Freeze Thursday and Friday."
+   ]
+  },
+  "recipes/tuna-rice-salad": {
+   "createdAt": "2026-10-25T14:10:00Z",
+   "ingredients": [
+    {
+     "aisle": "Pantry",
+     "item": "brown rice",
+     "qty": 200,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "tuna",
+     "qty": 3,
+     "unit": "can"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chickpeas (400 g)",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Produce",
+     "item": "cucumber",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "cherry tomatoes",
+     "qty": 250,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "red onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Dairy & eggs",
+     "item": "eggs",
+     "qty": 5,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "lemon",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "fresh": true,
+     "item": "parsley",
+     "qty": 1,
+     "unit": "bunch"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 3,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "lunch",
+   "minutes": 30,
+   "name": "Tuna, chickpea and rice salad (eat cold)",
+   "notes": "About 30 g of protein per box. A good spring and summer option.",
+   "portions": 5,
+   "steps": [
+    "Cook the brown rice, rinse it under cold water and drain well.",
+    "Hard-boil the eggs (10 min), cool them in cold water and peel.",
+    "Dice the cucumber and red onion, halve the tomatoes, chop the parsley. Drain the tuna and chickpeas.",
+    "Mix everything with the oil, lemon juice, salt and pepper.",
+    "Split into 5 boxes with one halved egg on top of each. No reheating needed."
+   ]
+  },
+  "recipes/d-meia-desfeita": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Frozen",
+     "item": "frozen cod loins",
+     "qty": 400,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chickpeas (400 g)",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Dairy & eggs",
+     "item": "eggs",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 2,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Produce",
+     "fresh": true,
+     "item": "parsley",
+     "qty": 1,
+     "unit": "bunch"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 2,
+     "staple": true,
+     "unit": "tbsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "vinegar",
+     "qty": 1,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "dinner",
+   "minutes": 25,
+   "name": "Cod with chickpeas and egg (light meia-desfeita)",
+   "notes": "About 50 g of protein per dinner. Frozen cod keeps for months.",
+   "portions": 2,
+   "steps": [
+    "Thaw the cod in the fridge the day before. Hard-boil the eggs (10 min).",
+    "Air fry the cod at 190 °C for 10–12 min with a little oil and salt, then flake it.",
+    "Warm the drained chickpeas with finely chopped onion and garlic.",
+    "Mix cod, chickpeas, chopped egg and parsley; dress with olive oil and a splash of vinegar."
+   ]
+  },
+  "recipes/d-salmon": {
+   "createdAt": "2026-10-25T14:10:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "fresh": true,
+     "item": "salmon fillets",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Frozen",
+     "item": "frozen green beans",
+     "qty": 300,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "brown rice",
+     "qty": 100,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "lemon",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 1,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "dinner",
+   "minutes": 25,
+   "name": "Air fryer salmon with green beans and brown rice",
+   "notes": "About 30 g of protein per dinner. Salmon twice a week covers your oily fish.",
+   "portions": 2,
+   "steps": [
+    "Cook the brown rice (25–30 min); keep half for tomorrow.",
+    "Rub the salmon with oil, lemon zest and salt. Air fry at 190 °C for 9–11 min.",
+    "Boil or air fry the green beans (8 min) alongside."
+   ]
+  },
+  "recipes/l-caldo-verde": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 500,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "potatoes",
+     "qty": 400,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 2,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Produce",
+     "fresh": true,
+     "item": "shredded couve galega",
+     "qty": 300,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "white beans (400 g)",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "stock cube",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 2,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "lunch",
+   "minutes": 45,
+   "name": "Caldo verde with chicken and white beans",
+   "notes": "About 30 g of protein per box. The Portuguese classic with chicken and beans instead of chouriço.",
+   "portions": 5,
+   "steps": [
+    "Peel and chop the potatoes, onion and garlic. Simmer them in 1.5 l of water with the stock cube for 20 min, with the whole chicken breasts in the pot.",
+    "Take out the chicken and shred it.",
+    "Blend the potato broth until smooth. Add the drained beans and the couve and simmer 5 min, until the couve is bright green.",
+    "Stir the chicken back in, finish with the olive oil and season.",
+    "Split into 5 boxes."
+   ]
+  },
+  "recipes/d-espetadas": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 400,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "courgette",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "red pepper",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "red onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Dairy & eggs",
+     "item": "Greek yogurt (plain)",
+     "qty": 250,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "cucumber",
+     "qty": 0.5,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 1,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "dried oregano",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 1,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "dinner",
+   "minutes": 25,
+   "name": "Air fryer chicken skewers with yogurt-garlic dip",
+   "notes": "About 50 g of protein per dinner. Wooden skewers need trimming to fit the basket.",
+   "portions": 2,
+   "steps": [
+    "Cube the chicken and veg, toss with oil, oregano and salt, and thread onto skewers (or just put the chunks in the basket).",
+    "Air fry at 190 °C for 14–16 min, turning halfway.",
+    "Mix the yogurt with grated cucumber, grated garlic and salt for the dip.",
+    "Keep half for tomorrow night."
+   ]
+  },
+  "recipes/l-sopa-lentilhas": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Pantry",
+     "item": "dried red or brown lentils",
+     "qty": 300,
+     "unit": "g"
+    },
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 500,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "pumpkin (abóbora)",
+     "qty": 400,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "carrots",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 2,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "stock cube",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "lemon",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "fresh": true,
+     "item": "coriander or parsley",
+     "qty": 1,
+     "unit": "bunch"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 2,
+     "staple": true,
+     "unit": "tbsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "ground cumin",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    }
+   ],
+   "kind": "lunch",
+   "minutes": 45,
+   "name": "Lentil, pumpkin and chicken soup",
+   "notes": "About 38 g of protein per box, no rice or pasta needed. Earthy and filling; thickens in the fridge, so add a splash of water when reheating.",
+   "portions": 5,
+   "steps": [
+    "Dice the onion, carrots and pumpkin; rinse the lentils.",
+    "Soften the onion and garlic in the oil, add carrots, pumpkin, cumin, lentils, the stock cube and 1.5 l of water.",
+    "Add the whole chicken breasts and simmer 25 min, until the lentils are soft.",
+    "Lift out the chicken, shred it with two forks. Blend half the soup for a thicker texture (optional), then stir the chicken back in.",
+    "Finish with lemon juice and chopped herbs. Split into 5 boxes."
+   ]
+  },
+  "recipes/d-ovos-grao": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Dairy & eggs",
+     "item": "eggs",
+     "qty": 6,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chickpeas (400 g)",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chopped tomatoes",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Produce",
+     "fresh": true,
+     "item": "spinach",
+     "qty": 100,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 2,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "ground cumin",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "smoked paprika",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 1,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "dinner",
+   "minutes": 20,
+   "name": "Eggs baked in tomato with chickpeas and spinach",
+   "notes": "About 28 g of protein per dinner. A meat-free night.",
+   "portions": 2,
+   "steps": [
+    "Soften the onion and garlic in the oil, add the spices, tomatoes and drained chickpeas and simmer 8 min.",
+    "Stir in the spinach. Make 3 hollows and crack in 3 eggs.",
+    "Cover and cook 5–6 min until the whites are set. Keep half the sauce for tomorrow and add 3 fresh eggs then."
+   ]
+  },
+  "recipes/d-tunapasta": {
+   "createdAt": "2026-10-25T14:10:00Z",
+   "ingredients": [
+    {
+     "aisle": "Pantry",
+     "item": "wholewheat pasta",
+     "qty": 140,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "tuna",
+     "qty": 2,
+     "unit": "can"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "passata",
+     "qty": 400,
+     "unit": "g"
+    },
+    {
+     "aisle": "Frozen",
+     "item": "frozen peas",
+     "qty": 200,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 1,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "dried oregano",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 1,
+     "staple": true,
+     "unit": "tbsp"
+    }
+   ],
+   "kind": "dinner",
+   "minutes": 20,
+   "name": "Wholewheat tuna and tomato pasta (cupboard dinner)",
+   "notes": "About 35 g of protein per dinner. Everything keeps for months, so it's the end-of-week backup.",
+   "portions": 2,
+   "steps": [
+    "Cook the pasta; add the peas for the last 3 min.",
+    "Soften the chopped onion and garlic in the oil, add passata and oregano and simmer 10 min.",
+    "Stir in the drained tuna and the pasta."
+   ]
+  },
+  "recipes/l-frango-grego": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 750,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "courgettes",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "red peppers",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "red onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chickpeas (400 g)",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "wholegrain bulgur",
+     "qty": 200,
+     "unit": "g"
+    },
+    {
+     "aisle": "Produce",
+     "item": "lemons",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 3,
+     "staple": true,
+     "unit": "tbsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "dried oregano",
+     "qty": 2,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 2,
+     "unit": "clove"
+    }
+   ],
+   "kind": "lunch",
+   "minutes": 50,
+   "name": "Air fryer lemon-oregano chicken with roast veg and bulgur",
+   "notes": "About 43 g of protein per box. Works cold too, with a squeeze of lemon.",
+   "portions": 5,
+   "steps": [
+    "Cube the chicken and marinate 15 min in 1 tbsp oil, the juice of 1 lemon, grated garlic, oregano and salt.",
+    "Cut the courgettes, peppers and onion into chunks, toss with the drained chickpeas, 1 tbsp oil and salt.",
+    "Air fry the veg and chickpeas at 200 °C for 15 min, shaking halfway. Do it in two rounds if the basket is full.",
+    "Air fry the chicken at 190 °C for 12–14 min, shaking halfway, until cooked through (no pink inside).",
+    "Cook the bulgur in salted water (about 12 min) and fluff it with the last spoon of oil and some lemon juice.",
+    "Split into 5 boxes with a small scoop of bulgur each."
+   ]
+  },
+  "recipes/l-grao-frango": {
+   "createdAt": "2026-10-25T15:30:00Z",
+   "ingredients": [
+    {
+     "aisle": "Meat & fish",
+     "item": "chicken breast",
+     "qty": 750,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chickpeas (400 g)",
+     "qty": 2,
+     "unit": "can"
+    },
+    {
+     "aisle": "Produce",
+     "item": "onion",
+     "qty": 1,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Produce",
+     "item": "garlic",
+     "qty": 3,
+     "unit": "clove"
+    },
+    {
+     "aisle": "Produce",
+     "item": "carrots",
+     "qty": 2,
+     "unit": "pcs"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "chopped tomatoes",
+     "qty": 1,
+     "unit": "can"
+    },
+    {
+     "aisle": "Produce",
+     "fresh": true,
+     "item": "spinach",
+     "qty": 200,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "brown rice",
+     "qty": 200,
+     "unit": "g"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "olive oil",
+     "qty": 2,
+     "staple": true,
+     "unit": "tbsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "smoked paprika",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "ground cumin",
+     "qty": 1,
+     "staple": true,
+     "unit": "tsp"
+    },
+    {
+     "aisle": "Pantry",
+     "item": "bay leaf",
+     "qty": 1,
+     "staple": true,
+     "unit": "pcs"
+    }
+   ],
+   "kind": "lunch",
+   "minutes": 50,
+   "name": "Chicken and chickpea stew with spinach",
+   "notes": "About 45 g of protein per box. The rice is a side, about 40 g dry per box.",
+   "portions": 5,
+   "steps": [
+    "Cut the chicken into chunks; dice the onion and carrots, slice the garlic.",
+    "Soften onion, carrot and garlic in the oil for 6 min. Add the chicken, paprika, cumin and bay leaf and seal for 3 min.",
+    "Add the tomatoes, the drained chickpeas and about 300 ml of water. Simmer 20 min with the lid on.",
+    "Stir in the spinach until it wilts. Season with salt and pepper.",
+    "Meanwhile cook the brown rice (25–30 min).",
+    "Split into 5 boxes: a big ladle of stew and about 3 tablespoons of rice each. Freeze the Thursday and Friday boxes."
+   ]
+  },
+  "rewards/takeaway": {
+   "cost": 120,
+   "name": "Order takeaway on a Friday"
+  },
+  "rewards/treat": {
+   "cost": 200,
+   "name": "Buy something small I've been wanting"
+  },
+  "rewards/lazy-morning": {
+   "cost": 60,
+   "name": "A lazy weekend morning, no plans"
+  },
+  "rewards/gaming-evening": {
+   "cost": 250,
+   "name": "Cinema or a meal out"
+  },
+  "habits/laundry": {
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "house",
+   "name": "Laundry: wash a load",
+   "order": 5,
+   "perWeek": 2
+  },
+  "habits/offline-hobby": {
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "hobby",
+   "name": "An offline hobby (no screens)",
+   "order": 8,
+   "perWeek": 3
+  },
+  "habits/dishes": {
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "food",
+   "name": "Clean up the kitchen after dinner: dishes, counters, hob, sink",
+   "order": 3,
+   "perWeek": 7
+  },
+  "habits/bathroom-clean": {
+   "createdAt": "2026-10-25",
+   "days": [
+    3
+   ],
+   "group": "house",
+   "name": "Bathroom: toilet, sink and shower",
+   "order": 14,
+   "perWeek": 1
+  },
+  "habits/mop-bathroom": {
+   "createdAt": "2026-10-25",
+   "days": [
+    6
+   ],
+   "group": "house",
+   "name": "Mop the bathroom floor",
+   "order": 15.5,
+   "perWeek": 1
+  },
+  "habits/freezer-lunch": {
+   "createdAt": "2026-11-02",
+   "days": [
+    3,
+    4
+   ],
+   "group": "food",
+   "name": "Move tomorrow's lunch box from freezer to fridge",
+   "order": 3.5,
+   "perWeek": 2
+  },
+  "habits/cat-litter": {
+   "createdAt": "2026-10-25",
+   "group": "cat",
+   "name": "Litter box + quick vacuum around it",
+   "order": 9,
+   "perWeek": 7
+  },
+  "habits/laundry-hang": {
+   "after": "laundry",
+   "afterDays": 0,
+   "createdAt": "2026-10-25",
+   "group": "house",
+   "name": "Hang the laundry on the drying rack",
+   "order": 5.1,
+   "perWeek": 7
+  },
+  "habits/cook-dinner": {
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "food",
+   "link": "dinner",
+   "name": "Cook a proper dinner",
+   "order": 1,
+   "perWeek": 7
+  },
+  "habits/kitchen-deep": {
+   "createdAt": "2026-10-26",
+   "days": [
+    0
+   ],
+   "group": "house",
+   "name": "Deep kitchen clean after lunch prep: hob, fridge front, cabinet doors and handles, sink and drain, mop the floor",
+   "order": 13,
+   "perWeek": 1
+  },
+  "habits/life-admin": {
+   "createdAt": "2026-10-25",
+   "days": [
+    6
+   ],
+   "group": "house",
+   "name": "Life admin: post, bills, appointments, restock cat food and litter",
+   "order": 17,
+   "perWeek": 1
+  },
+  "habits/bedroom-clean": {
+   "createdAt": "2026-10-25",
+   "days": [
+    4
+   ],
+   "group": "house",
+   "name": "Bedroom: dust and change the sheets",
+   "order": 15,
+   "perWeek": 1
+  },
+  "habits/cat-full-litter": {
+   "createdAt": "2026-10-25",
+   "days": [
+    6
+   ],
+   "everyWeeks": 2,
+   "group": "cat",
+   "name": "Full litter change + wash the tray",
+   "order": 11.7,
+   "perWeek": 1,
+   "weekOffset": 0
+  },
+  "habits/prep-tomorrow": {
+   "archivedAt": "2026-10-25",
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "food",
+   "name": "Prep tomorrow's lunch",
+   "order": 2,
+   "perWeek": 5
+  },
+  "habits/vacuum": {
+   "createdAt": "2026-10-25",
+   "days": [
+    1,
+    4
+   ],
+   "group": "house",
+   "name": "Vacuum the floors",
+   "order": 12,
+   "perWeek": 2
+  },
+  "habits/cat-wetfood": {
+   "createdAt": "2026-10-25",
+   "group": "cat",
+   "name": "Wet food for the cat",
+   "order": 11,
+   "perWeek": 7
+  },
+  "habits/kitchen-clean": {
+   "archivedAt": "2026-10-25",
+   "createdAt": "2026-10-25",
+   "days": [
+    2
+   ],
+   "group": "house",
+   "name": "Kitchen clean: hob, counters, sink",
+   "order": 13,
+   "perWeek": 1
+  },
+  "habits/saturday-deep-clean": {
+   "createdAt": "2026-10-25",
+   "days": [
+    6
+   ],
+   "group": "house",
+   "name": "Saturday deep clean",
+   "order": 16,
+   "perWeek": 1,
+   "rotation": [
+    "wipe out the fridge and bin old food",
+    "clean the microwave and oven",
+    "mirrors, windows and glass",
+    "dust shelves, skirting boards and light switches",
+    "brush the cat and trim its claws",
+    "descale the kettle and clean the coffee machine",
+    "wash the bins, bath mats and the cat's blanket",
+    "clear one cluttered spot (a drawer, shelf or the clothes chair)"
+   ]
+  },
+  "habits/cat-play": {
+   "createdAt": "2026-10-25",
+   "group": "cat",
+   "name": "10 minutes of play with the cat",
+   "order": 11.5,
+   "perWeek": 4
+  },
+  "habits/tidy-15": {
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "house",
+   "name": "15-minute tidy",
+   "order": 4,
+   "perWeek": 7
+  },
+  "habits/laundry-fold": {
+   "after": "laundry",
+   "afterDays": 1,
+   "createdAt": "2026-10-25",
+   "group": "house",
+   "name": "Fold and put away the dry laundry",
+   "order": 5.2,
+   "perWeek": 7
+  },
+  "habits/bins": {
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "house",
+   "name": "Take out the bins",
+   "order": 6,
+   "perWeek": 2
+  },
+  "habits/read-20": {
+   "createdAt": "2026-10-25T14:00:00Z",
+   "group": "hobby",
+   "name": "Read Assassin's Apprentice (30 min)",
+   "order": 20,
+   "perWeek": 7
+  },
+  "habits/cat-water": {
+   "createdAt": "2026-10-25",
+   "group": "cat",
+   "name": "Fresh water for the cat",
+   "order": 10,
+   "perWeek": 7
+  },
+  "game/state": {
+   "startDate": "2026-10-26"
+  }
+ }
+}

@@ -157,8 +157,20 @@
       e.target.value = "";
     });
     $("setSignOut").addEventListener("click", () => window.Store.signOut());
+    $("setStarter").addEventListener("click", async () => {
+      $("setStatus").textContent = "Loading…";
+      try { const n = await window.loadStarter(); $("setStatus").textContent = "Loaded " + n + " items. Rename your party in the Party tab."; }
+      catch (e) { $("setStatus").textContent = "Couldn't load the starter set. Check your connection."; }
+    });
     document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("settings").hidden) close(); });
   }
   window.Settings = { open, close };
+  window.loadStarter = async () => {
+    const res = await fetch("starter.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("not found");
+    const data = await res.json();
+    await window.Store.importAll(data, false);
+    return Object.keys(data.docs).length;
+  };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire); else wire();
 })();

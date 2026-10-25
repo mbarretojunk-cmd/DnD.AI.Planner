@@ -450,7 +450,8 @@
       doneList.forEach(h => inner.appendChild(row(h, "done")));
       d.appendChild(inner); box.appendChild(d);
     }
-    if (!all.length) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = visibleHabits().length ? "Nothing due on this day." : "No habits yet. Add one under Edit habits."; box.appendChild(p); }
+    if (!all.length) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = visibleHabits().length ? "Nothing due on this day." : "No habits yet."; box.appendChild(p);
+      if (!visibleHabits().length) { const sb = mkBtn("Load the starter habits and recipes", "btn-main", async () => { sb.disabled = true; sb.textContent = "Loading…"; try { await window.loadStarter(); } catch (e) { sb.disabled = false; sb.textContent = "Couldn't load. Try again"; } }); box.appendChild(sb); } }
   }
 
   function renderTonight() {
