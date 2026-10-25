@@ -1,0 +1,4 @@
+# personal backups never go into this public repository
+*backup*.json
+.DS_Store
+node_modules/

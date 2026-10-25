@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#131a19" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef0ea" media="(prefers-color-scheme: light)">
+<title>Evenings at Home</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Evenings at Home</h1>
+    <div class="stats" aria-label="Party stats">
+      <span>Lv <b id="sLevel">1</b></span>
+      <span><b id="sGold">0</b> gold</span>
+      <button type="button" class="gear" id="openSettings" aria-label="Settings"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5l1.6 1.2-2 3.4-1.9-.7a7.4 7.4 0 0 1-2 1.2l-.3 2h-4l-.3-2a7.4 7.4 0 0 1-2-1.2l-1.9.7-2-3.4 1.6-1.2a7.6 7.6 0 0 1 0-3l-1.6-1.2 2-3.4 1.9.7a7.4 7.4 0 0 1 2-1.2l.3-2h4l.3 2a7.4 7.4 0 0 1 2 1.2l1.9-.7 2 3.4-1.6 1.2a7.6 7.6 0 0 1 0 3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+    </div>
+  </header>
+
+  <section class="stack" style="gap:8px" aria-label="Your party">
+    <div class="party-mini" id="party"></div>
+    <div class="xpline">
+      <div class="bar" style="--c: var(--lamp);height:6px"><span id="xpBar" style="width:0"></span></div>
+      <div class="between small"><span class="muted" id="xpLabel">0 / 100 XP to level 2</span><span class="muted mono" id="xpToday"></span></div>
+    </div>
+  </section>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" id="tab-tonight" aria-controls="view-tonight" aria-selected="true">Tonight</button>
+    <button role="tab" id="tab-party" aria-controls="view-party" aria-selected="false">Party</button>
+    <button role="tab" id="tab-lunch" aria-controls="view-lunch" aria-selected="false">Food</button>
+    <button role="tab" id="tab-quests" aria-controls="view-quests" aria-selected="false">Quests</button>
+    <button role="tab" id="tab-dm" aria-controls="view-dm" aria-selected="false">DM</button>
+  </nav>
+
+  <!-- TONIGHT -->
+  <section id="view-tonight" role="tabpanel" aria-labelledby="tab-tonight" class="stack" style="gap:22px">
+    <div class="between">
+      <div class="daynav">
+        <button id="prev" aria-label="Previous day">‹</button>
+        <span class="date-label" id="dateLabel"></span>
+        <button id="next" aria-label="Next day">›</button>
+        <button id="todayBtn" class="btn-small">Today</button>
+      </div>
+    </div>
+    <section class="glance" aria-label="Tonight at a glance">
+      <div class="encounter" id="encounter"></div>
+    <div id="timelineBox">
+      <div class="track" id="track"><div class="rail"></div><div class="fill" id="fill"></div></div>
+      <div class="scale" id="scale"></div>
+      <p class="small muted" id="tlNote" style="margin-top:6px"></p>
+    </div>
+    </section>
+    <section class="todo" aria-live="polite">
+      <div class="todo-head">
+        <h2 id="listTitle">Tonight</h2>
+        <span class="mono small muted" id="count"></span>
+      </div>
+      <div class="todo-bar"><span id="todoFill"></span></div>
+      <p class="small muted" id="todoNote"></p>
+      <div id="todo" class="stack" style="gap:16px"></div>
+    </section>
+    <div class="row" id="labPlan"></div>
+    <div class="panel" id="weekendCard" hidden></div>
+    <div class="stack">
+      <div class="between"><h2>Your last 7 days</h2><span class="small muted">tap a day to open it</span></div>
+      <p class="small muted">How each evening went: chores done out of chores due, and whether the party won that night's fight. Forgot to tick something yesterday? Open that day and tick it; the fight is scored again.</p>
+      <div class="daystrip" id="dayStrip"></div>
+      <details>
+        <summary>Per habit, day by day</summary>
+        <div class="stack" style="padding-bottom:12px">
+          <p class="small muted">Each row is a habit, each square a day. Filled means done. Tap a square to change it.</p>
+          <div class="weekbox"><table class="week" id="week"></table></div>
+        </div>
+      </details>
+    </div>
+    <details>
+      <summary>Edit habits</summary>
+      <div class="stack">
+        <div id="mlist"></div>
+        <form id="addHabit" class="stack">
+          <label class="f" for="hName">New habit<input id="hName" required maxlength="60" placeholder="e.g. Water the plants"></label>
+          <div class="form-row">
+            <label class="f" for="hGroup">Group
+              <select id="hGroup"><option value="food">Food &amp; home</option><option value="house">House duties</option><option value="cat">Cat care</option><option value="hobby">Free time (from 21:30)</option></select>
+            </label>
+            <label class="f" for="hTarget">How often
+              <select id="hTarget"><option value="7">Every day</option><option value="days">On set weekdays</option><option value="5">5× a week, any days</option><option value="4">4× a week, any days</option><option value="3">3× a week, any days</option><option value="2">2× a week, any days</option><option value="1">Once a week, any day</option></select>
+            </label>
+          </div>
+          <div id="hDaysBox" class="stack" style="gap:6px" hidden>
+            <span class="small muted">Which days?</span>
+            <div class="daychips" id="hDays"></div>
+          </div>
+          <button class="btn-main" type="submit">Add habit</button>
+          <div class="status" id="hStatus"></div>
+        </form>
+      </div>
+    </details>
+  </section>
+
+  <!-- PARTY -->
+  <section id="view-party" role="tabpanel" aria-labelledby="tab-party" class="stack" style="gap:22px" hidden>
+    <div class="stack" id="members"></div>
+    <details>
+      <summary>Rename the party</summary>
+      <form id="renameForm" class="stack">
+        <div id="renameFields" class="stack"></div>
+        <button class="btn-quiet" type="submit">Save names</button>
+        <div class="status" id="nStatus"></div>
+      </form>
+    </details>
+    <div class="panel">
+      <div class="between"><h2>Rewards</h2><span class="small muted">Spend gold on real treats</span></div>
+      <div id="rewards"></div>
+      <form id="addReward" class="form-row" style="align-items:end">
+        <label class="f" for="rName">New reward<input id="rName" required maxlength="60" placeholder="e.g. Cinema night"></label>
+        <label class="f" for="rCost">Cost in gold<input id="rCost" type="number" min="5" max="5000" step="5" value="100" required></label>
+        <button class="btn-quiet" type="submit" style="grid-column:1/-1">Add reward</button>
+      </form>
+      <div class="status" id="rStatus"></div>
+    </div>
+    <div class="panel">
+      <h2>Adventure log</h2>
+      <div class="log" id="log"></div>
+    </div>
+    <details>
+      <summary>How the game works</summary>
+      <div class="stack">
+        <ul class="rules">
+          <li>Each evening a monster shows up. Every habit or milestone you finish deals 10 damage to it. Beat it before midnight to win.</li>
+          <li>Wins give XP and gold. A loss costs 10 XP, a quarter of your gold, and 4 damage to everyone.</li>
+          <li>Every daily habit left undone at midnight deals 6 damage to the member who guards it: Food &amp; home → the cleric, House duties → the fighter, Cat care → the familiar, Free time → the wizard, lunch prep and quests → the rogue. Habits set to specific weekdays count as daily on those days.</li>
+          <li>Weekly habits are checked on Sunday at midnight. Each missing session deals 6 damage.</li>
+          <li>Finished habits heal their guardian by 3 HP. Finishing Sunday lunch prep gives a long rest: everyone fully healed and back on their feet.</li>
+          <li>A member at 0 HP goes down. They get back up after two wins in a row.</li>
+          <li>If the whole party goes down, you lose a level and half your gold.</li>
+          <li>Levelling up fully heals the party and raises everyone's max HP.</li>
+          <li>Each member also levels up on their own from their kind of task (cat care grows the familiar, house duties the fighter, and so on). Every member level adds 3 max HP. Their personal log is on their card.</li>
+          <li>Sick or away? Take a rest day from the Tonight tab: no fight, no damage, no XP. You get two per month.</li>
+          <li>Working in the lab on a weekend? Play the lab wild card on that day: weekend chores, lunch prep and weekly targets are excused, only daily basics count, and you get a 15 XP overtime bonus. No limit.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- LUNCH -->
+  <section id="view-lunch" role="tabpanel" aria-labelledby="tab-lunch" class="stack" style="gap:22px" hidden>
+    <div class="panel">
+      <div class="eyebrow" id="prepEyebrow"></div>
+      <h2 id="prepTitle">Sunday lunch prep</h2>
+      <p class="small muted" id="prepStakes"></p>
+      <div class="milestones" id="prepSteps"></div>
+      <div class="row" id="prepSkip"></div>
+    </div>
+    <div class="panel">
+      <div class="between"><h2>This week's lunches</h2><span class="mono small muted" id="planCount"></span></div>
+      <div id="planList" class="stack"></div>
+    </div>
+    <div class="panel">
+      <div class="between"><h2>Dinners for the next 7 nights</h2><span class="mono small muted" id="dinnerCount"></span></div>
+      <div id="dinnerList" class="stack"></div>
+    </div>
+    <div class="panel">
+      <div class="between"><h2>Shopping list</h2><span class="mono small muted" id="shopCount"></span></div>
+      <div id="shopList" class="stack"></div>
+      <form id="addExtra" class="row" style="flex-wrap:nowrap">
+        <label class="f" for="exText" style="flex:1;min-width:0">Add something else (cat litter, toilet paper…)<input id="exText" maxlength="60" placeholder="e.g. Wet food for the cat, 12 pouches"></label>
+        <button class="btn-quiet" type="submit" style="align-self:end">Add</button>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>Recipe book</h2>
+      <div id="recipes" class="stack"></div>
+    </div>
+    <details>
+      <summary>Add a recipe</summary>
+      <form id="addRecipe" class="stack">
+        <label class="f" for="rcName">Name<input id="rcName" required maxlength="80" placeholder="e.g. Pork and rice bowls"></label>
+        <label class="f" for="rcKind">Type
+          <select id="rcKind"><option value="lunch">Lunch prep (batch cook on Sunday)</option><option value="dinner">Quick dinner</option></select>
+        </label>
+        <div class="form-row">
+          <label class="f" for="rcPortions">Portions (dinners: nights it covers)<input id="rcPortions" type="number" min="1" max="12" value="5" required></label>
+          <label class="f" for="rcMinutes">Minutes<input id="rcMinutes" type="number" min="5" max="300" value="45" required></label>
+        </div>
+        <label class="f" for="rcIngredients">Ingredients, one per line. Add the shop section after a comma.
+          <textarea id="rcIngredients" required placeholder="500 g pork loin, Meat & fish&#10;2 onions, Produce&#10;350 g rice, Pantry&#10;2 tbsp soy sauce, Pantry"></textarea>
+        </label>
+        <label class="f" for="rcUrl">Link to the original recipe or video (optional)<input id="rcUrl" type="url" placeholder="https://"></label>
+        <label class="f" for="rcSteps">Steps, one per line
+          <textarea id="rcSteps" placeholder="Cook the rice.&#10;Brown the pork with the onions.&#10;Portion into 5 boxes."></textarea>
+        </label>
+        <p class="small muted">Shop sections: Produce, Meat &amp; fish, Dairy &amp; eggs, Pantry, Frozen, Bakery. Write “staple” for things you usually have, like oil or spices. Add “, fresh” at the end for things that won't keep a week.</p>
+        <button class="btn-main" type="submit">Add recipe</button>
+        <div class="status" id="rcStatus"></div>
+      </form>
+    </details>
+  </section>
+
+  <!-- QUESTS -->
+  <section id="view-quests" role="tabpanel" aria-labelledby="tab-quests" class="stack" style="gap:22px" hidden>
+    <p class="muted small">Break a big task into small milestones. Each milestone gives 10 XP and hits tonight's monster. Finishing the quest gives 40 XP. If a quest has a due date and isn't finished by then, Wren takes 8 damage.</p>
+    <div id="quests" class="stack"></div>
+    <div class="panel">
+      <h2>New quest</h2>
+      <form id="addQuest" class="stack">
+        <label class="f" for="qTitle">What's the big task?<input id="qTitle" required maxlength="80" placeholder="e.g. Sort out the spare room"></label>
+        <label class="f" for="qSteps">Milestones, one per line
+          <textarea id="qSteps" required placeholder="Empty the boxes onto the bed&#10;Make three piles: keep, donate, bin&#10;Take the donate pile to the car&#10;Vacuum"></textarea>
+        </label>
+        <label class="f" for="qDue">Due date (optional)<input id="qDue" type="date"></label>
+        <button class="btn-main" type="submit">Start quest</button>
+        <div class="status" id="qStatus"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- DUNGEON MASTER -->
+  <section id="view-dm" role="tabpanel" aria-labelledby="tab-dm" class="stack" style="gap:14px" hidden>
+    <div class="between"><h2>Dungeon Master</h2><button type="button" class="btn-small" id="dmClear">New chat</button></div>
+    <div class="notice" id="dmNoKey" hidden>The DM needs your Claude API key. <button type="button" class="btn-small" id="dmOpenSettings">Open settings</button></div>
+    <div class="dmlog" id="dmLog" aria-live="polite"></div>
+    <div class="rchips" style="padding-left:0">
+      <button type="button" class="rchip" data-dm="Narrate tonight's battle so far.">Tonight's battle</button>
+      <button type="button" class="rchip" data-dm="I'm exhausted. What's the smallest thing I can do right now?">I'm exhausted</button>
+      <button type="button" class="rchip" data-dm="Recap last night and tell me how the party is doing.">Morning recap</button>
+      <button type="button" class="rchip" data-dm="Give me a side quest to break down something I've been putting off at home.">Side quest</button>
+    </div>
+    <form id="dmForm" class="dmform">
+      <label for="dmInput" class="sr">Message the DM</label>
+      <input id="dmInput" autocomplete="off" placeholder="Talk to the DM…" maxlength="600">
+      <button class="btn-main" id="dmSend" type="submit">Send</button>
+    </form>
+  </section>
+</div>
+
+<div id="settings" class="brew" role="dialog" aria-modal="true" aria-labelledby="setTitle" hidden>
+  <div class="brew-inner" style="grid-template-rows:auto">
+    <div class="stack" style="gap:18px">
+      <div class="brew-top"><h2 id="setTitle">Settings</h2><button type="button" class="btn-small" id="setClose">Close</button></div>
+      <div class="panel">
+        <h3>Your data</h3>
+        <p class="small muted" id="setMode"></p>
+        <div class="row">
+          <button type="button" class="btn-quiet" id="setExport">Download a backup</button>
+          <label class="btn-quiet" for="setImportFile" style="cursor:pointer">Import a backup<input type="file" id="setImportFile" accept="application/json,.json" class="sr"></label>
+        </div>
+        <label class="small muted" for="setReplace" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="setReplace" style="width:auto"> Replace everything with the backup (otherwise merge)</label>
+        <button type="button" class="btn-small" id="setSignOut" hidden>Sign out</button>
+      </div>
+      <div class="panel">
+        <h3>Dungeon Master</h3>
+        <label class="f" for="setKey">Claude API key (stays on this device)<input id="setKey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+        <div class="form-row">
+          <label class="f" for="setModel">Model
+            <select id="setModel"><option value="claude-haiku-5-5">Haiku (cheapest, fast)</option><option value="claude-sonnet-5-5">Sonnet (richer stories)</option></select>
+          </label>
+          <label class="f" for="setStyle">Style
+            <select id="setStyle"><option value="classic">Classic narrator</option><option value="cheeky">Cheeky and sarcastic</option></select>
+          </label>
+        </div>
+        <button type="button" class="btn-main" id="setSave">Save</button>
+      </div>
+      <p class="status" id="setStatus"></p>
+    </div>
+  </div>
+</div>
+
+<div id="auth" class="brew" role="dialog" aria-modal="true" aria-labelledby="authTitle" hidden>
+  <div class="brew-inner" style="grid-template-rows:auto;align-content:center">
+    <form id="authForm" class="panel" style="max-width:420px;margin:0 auto;width:100%">
+      <h2 id="authTitle">Evenings at Home</h2>
+      <p class="small muted">Sign in so your party syncs between your phone and computer.</p>
+      <label class="f" for="authEmail">Email<input id="authEmail" type="email" autocomplete="email" required></label>
+      <label class="f" for="authPass">Password<input id="authPass" type="password" autocomplete="current-password" minlength="6" required></label>
+      <div class="row"><button class="btn-main" type="submit" id="authIn">Sign in</button><button class="btn-quiet" type="button" id="authUp">Create account</button></div>
+      <p class="status" id="authStatus"></p>
+    </form>
+  </div>
+</div>
+
+<div id="brew" class="brew" role="dialog" aria-modal="true" aria-labelledby="brewTitle" hidden>
+  <div class="brew-inner">
+    <div class="brew-top">
+      <div style="min-width:0">
+        <div class="eyebrow" id="brewEyebrow">Alchemy</div>
+        <h2 id="brewTitle">Brewing</h2>
+        <div class="small muted" id="brewSub"></div>
+      </div>
+      <button type="button" class="btn-small" id="brewClose">Close</button>
+    </div>
+    <div class="brew-timer" id="brewTimer" hidden></div>
+    <div class="brew-dots" id="brewDots"></div>
+    <div class="brew-body" id="brewBody"></div>
+    <div class="brew-nav">
+      <button type="button" class="btn-quiet" id="brewBack">Back</button>
+      <button type="button" class="btn-main" id="brewNext">Next</button>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="store.js"></script>
+<script src="app.js"></script>
+<script src="dm.js"></script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script>
+</body>
+</html>

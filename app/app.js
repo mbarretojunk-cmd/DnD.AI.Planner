@@ -1,0 +1,1245 @@
+(function () {
+  "use strict";
+  /* ================= constants ================= */
+  const GROUPS = {
+    cat: { label: "Cat care", color: "var(--cat)", member: "familiar" },
+    house: { label: "House duties", color: "var(--house)", member: "fighter" },
+    food: { label: "Food & home", color: "var(--food)", member: "cleric" },
+    hobby: { label: "Free time", color: "var(--hobby)", member: "wizard" }
+  };
+  const PARTY_BASE = [
+    { id: "cleric", name: "Brother Aldo", cls: "Cleric", color: "var(--food)", guards: "Food & home" },
+    { id: "fighter", name: "Hilde", cls: "Fighter", color: "var(--house)", guards: "House duties" },
+    { id: "familiar", name: "Your cat", cls: "Familiar", color: "var(--cat)", guards: "Cat care" },
+    { id: "wizard", name: "Ismay", cls: "Wizard", color: "var(--hobby)", guards: "Free time" },
+    { id: "rogue", name: "Wren", cls: "Rogue", color: "var(--rogue)", guards: "Lunch prep & quests" }
+  ];
+  let PARTY = PARTY_BASE.map(p => Object.assign({}, p));
+  const PORTRAITS = {
+    cleric: '<circle cx="32" cy="32" r="32" fill="var(--sunk)"/><path d="M8 64c2-13 11-20 24-20s22 7 24 20z" fill="var(--food)"/><path d="M22 46c4 4 16 4 20 0" fill="none" stroke="var(--surface)" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="54" r="3.5" fill="var(--lamp)"/><path d="M32 48.5v-2M32 61.5v-2M26.5 54h-2M39.5 54h-2" stroke="var(--lamp)" stroke-width="1.6" stroke-linecap="round"/><circle cx="32" cy="28" r="12" fill="var(--skin)"/><path d="M20.5 30c-1-5 0-8 3-10M43.5 30c1-5 0-8-3-10" fill="none" stroke="var(--hair-brown)" stroke-width="3.5" stroke-linecap="round"/><circle cx="27.5" cy="28.5" r="1.5" fill="var(--feature)"/><circle cx="36.5" cy="28.5" r="1.5" fill="var(--feature)"/><path d="M28 34q4 3 8 0" fill="none" stroke="var(--feature)" stroke-width="1.5" stroke-linecap="round"/><path d="M25 25.5l4-.8M39 25.5l-4-.8" stroke="var(--hair-brown)" stroke-width="1.4" stroke-linecap="round"/>',
+    fighter: '<circle cx="32" cy="32" r="32" fill="var(--sunk)"/><path d="M8 64c2-13 11-20 24-20s22 7 24 20z" fill="var(--house)"/><path d="M12 54c3-6 7-9 12-10M52 54c-3-6-7-9-12-10" fill="none" stroke="var(--steel)" stroke-width="4" stroke-linecap="round"/><path d="M22 31c-2 6-3 11-2 16M42 31c2 6 3 11 2 16" fill="none" stroke="var(--hair-blond)" stroke-width="4.5" stroke-linecap="round"/><circle cx="32" cy="30" r="11.5" fill="var(--skin)"/><path d="M19.5 29a12.5 12.5 0 0 1 25 0v-1.5h-25z" fill="var(--steel)"/><path d="M19.5 28.5a12.5 12.5 0 0 1 25 0" fill="none" stroke="var(--feature)" stroke-opacity=".25" stroke-width="1"/><rect x="30.8" y="27" width="2.4" height="9" rx="1" fill="var(--steel)"/><circle cx="27" cy="31.5" r="1.5" fill="var(--feature)"/><circle cx="37" cy="31.5" r="1.5" fill="var(--feature)"/><path d="M29 37.5h6" stroke="var(--feature)" stroke-width="1.5" stroke-linecap="round"/>',
+    familiar: '<circle cx="32" cy="32" r="32" fill="var(--sunk)"/><path d="M14 50c0-13 4-21 9-24l-2-14 10 9q1 0 2 0l10-9-2 14c5 3 9 11 9 24-7 6-29 6-36 0z" fill="var(--fur)"/><path d="M23 14l7 7M41 14l-7 7" stroke="var(--skin)" stroke-width="2" stroke-linecap="round" opacity=".6"/><ellipse cx="25.5" cy="35" rx="3.6" ry="4.4" fill="var(--lamp)"/><ellipse cx="38.5" cy="35" rx="3.6" ry="4.4" fill="var(--lamp)"/><ellipse cx="25.5" cy="35" rx="1.2" ry="3.4" fill="var(--feature)"/><ellipse cx="38.5" cy="35" rx="1.2" ry="3.4" fill="var(--feature)"/><path d="M30 41.5h4l-2 2.5z" fill="var(--skin2)"/><path d="M32 44v1.5M32 45.5q-2.5 2-4.5 .5M32 45.5q2.5 2 4.5 .5" fill="none" stroke="var(--feature)" stroke-width="1.2" stroke-linecap="round"/><path d="M8 40l13 2M8 46l13-1M56 40l-13 2M56 46l-13-1" stroke="var(--surface)" stroke-width="1" stroke-linecap="round"/><path d="M19 54q13 5 26 0" fill="none" stroke="var(--cat)" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="57.5" r="2.5" fill="var(--lamp)"/>',
+    wizard: '<circle cx="32" cy="32" r="32" fill="var(--sunk)"/><path d="M8 64c2-13 11-20 24-20s22 7 24 20z" fill="var(--hobby)"/><path d="M20 26c-1 8-1 15 1 22M44 26c1 8 1 15-1 22" fill="none" stroke="var(--hair-dark)" stroke-width="6" stroke-linecap="round"/><circle cx="32" cy="31" r="11" fill="var(--skin)"/><path d="M18 24L36 2l9 22z" fill="var(--hobby)"/><ellipse cx="32" cy="24" rx="17" ry="3.5" fill="var(--hobby)"/><path d="M36 11l.9 2 2.2.3-1.6 1.5.4 2.2-1.9-1-1.9 1 .4-2.2-1.6-1.5 2.2-.3z" fill="var(--lamp)"/><circle cx="27.5" cy="31.5" r="1.5" fill="var(--feature)"/><circle cx="36.5" cy="31.5" r="1.5" fill="var(--feature)"/><path d="M29 37q3 2 6 0" fill="none" stroke="var(--feature)" stroke-width="1.4" stroke-linecap="round"/><circle cx="50" cy="50" r="3" fill="var(--lamp)" opacity=".85"/>',
+    rogue: '<circle cx="32" cy="32" r="32" fill="var(--sunk)"/><path d="M8 64c2-13 11-20 24-20s22 7 24 20z" fill="var(--rogue)"/><path d="M17 40C15 18 24 11 32 11s17 7 15 29c-4 4-26 4-30 0z" fill="var(--rogue)"/><ellipse cx="32" cy="32" rx="9" ry="10" fill="var(--skin2)"/><path d="M22 27c3-5 17-5 20 0-3-2-17-2-20 0z" fill="var(--feature)" opacity=".55"/><path d="M26.5 30.5q1.5-1.4 3 0M34.5 30.5q1.5-1.4 3 0" fill="none" stroke="var(--feature)" stroke-width="1.6" stroke-linecap="round"/><path d="M24 37q8 9 16 0v6q-8 4-16 0z" fill="var(--feature)" opacity=".7"/><path d="M48 46l6-12" stroke="var(--steel)" stroke-width="2.5" stroke-linecap="round"/><path d="M46 49l5-2" stroke="var(--feature)" stroke-width="2.5" stroke-linecap="round"/>'
+  };
+  function applyNames() { const n = (game && game.names) || {}; PARTY = PARTY_BASE.map(p => Object.assign({}, p, { name: (typeof n[p.id] === "string" && n[p.id].trim()) ? n[p.id].trim().slice(0, 30) : p.name })); }
+  function portrait(p, size) { return '<svg class="portrait"' + (size ? ' style="width:' + size + 'px;height:' + size + 'px"' : "") + ' viewBox="0 0 64 64" role="img" aria-label="' + esc(p.name) + ', ' + p.cls + '"><defs><clipPath id="cp-' + p.id + (size || "") + '"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#cp-' + p.id + (size || "") + ')">' + PORTRAITS[p.id] + '</g></svg>'; }
+  const MONSTERS = [
+    ["Scroll Leech", "Feeds on endless feeds."], ["Couch Mimic", "Looks like a comfy seat. Isn't."],
+    ["Dish Hydra", "Two plates grow back for every one."], ["Laundry Golem", "Built from last week's socks."],
+    ["Procrastination Imp", "Whispers 'in five minutes'."], ["Glowscreen Siren", "Sings in notification tones."],
+    ["Crumb Swarm", "Lives under the toaster."], ["Dust Wraith", "Drifts along the skirting boards."],
+    ["Takeaway Ogre", "Smells of grease and regret."], ["Tab Hoarder", "Keeps 47 browser tabs open."],
+    ["Snooze Basilisk", "One look and you're napping."], ["Clutter Troll", "Guards the chair of clothes."]
+  ];
+  const AISLES = ["Produce", "Meat & fish", "Dairy & eggs", "Bakery", "Pantry", "Frozen", "Other"];
+  const PREP_STEPS = [
+    ["plan", "Pick this week's lunches"],
+    ["pantry", "Check the fridge and cupboards"],
+    ["shop", "Do the shopping"],
+    ["cook", "Cook"],
+    ["portion", "Portion into 5 boxes and fridge them"]
+  ];
+  const LUNCHES = 5, DINNERS = 7, MAX_AHEAD = 14;
+  const ICON = {
+    heart: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14s-5.5-3.4-5.5-7.2A3 3 0 0 1 8 4.6a3 3 0 0 1 5.5 2.2C13.5 10.6 8 14 8 14z" fill="var(--hurt)"/></svg>',
+    sword: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 1.5l1 1-7.6 7.6-1-1zM5.2 9.4l1.4 1.4-1.2 1.2 1.1 1.1-.9.9-1.1-1.1-1.6 1.6-.9-.9 1.6-1.6-1.1-1.1.9-.9 1.1 1.1z" fill="currentColor"/></svg>',
+    coin: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="var(--lamp)"/><circle cx="8" cy="8" r="3.6" fill="none" stroke="var(--surface)" stroke-width="1.2"/></svg>',
+    star: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.9 4 4.4.5-3.3 3 .9 4.3L8 11.2l-3.9 2.1.9-4.3-3.3-3 4.4-.5z" fill="var(--hobby)"/></svg>'
+  };
+  let lastHit = 0;
+  const CHECK = '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  /* ================= state ================= */
+  let db = null, canWrite = true;
+  let habitsAll = [];       // includes archived
+  const days = {};          // date -> {done:{}}
+  let recipes = [], plans = {}, quests = [], rewards = [], purchases = [];
+  let game = { startDate: null };
+  let viewDate = "";
+  let skip = 0;
+  let tab = "tonight";
+  const openRecipe = {}, confirmBox = {};
+  const chains = {};
+
+  /* ================= dates ================= */
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, "0");
+  function keyOf(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function todayKey() { return keyOf(new Date()); }
+  function parseKey(k) { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); }
+  function addDays(k, n) { const d = parseKey(k); d.setDate(d.getDate() + n); return keyOf(d); }
+  function dow(k) { return parseKey(k).getDay(); }
+  function mondayOf(k) { return addDays(k, -((dow(k) + 6) % 7)); }
+  viewDate = todayKey();
+  function niceDate(k) { return parseKey(k).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }); }
+  function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  /* ================= habit helpers ================= */
+  function createdKey(h) { return (h.createdAt || "2000-01-01").slice(0, 10); }
+  function activeOn(h, k) { return createdKey(h) <= k && (!h.archivedAt || h.archivedAt > k); }
+  function isDone(hid, k) { return !!(days[k] && days[k].done && days[k].done[hid]); }
+  function weekCountTo(hid, k) { const m = mondayOf(k); let c = 0; for (let d = m; d <= k; d = addDays(d, 1)) if (isDone(hid, d)) c++; return c; }
+  function habitsOn(k) { return habitsAll.filter(h => activeOn(h, k)).sort((a, b) => (a.order || 0) - (b.order || 0)); }
+  function visibleHabits() { return habitsAll.filter(h => !h.archivedAt).sort((a, b) => (a.order || 0) - (b.order || 0)); }
+  const DAYNAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+  function isScheduled(h) { return Array.isArray(h.days) && h.days.length > 0; }
+  function scheduledOn(h, k) {
+    if (!isScheduled(h) || !h.days.includes(dow(k))) return false;
+    const ew = Number(h.everyWeeks) || 1; if (ew < 2) return true;
+    return (((weekIndex(k) - (Number(h.weekOffset) || 0)) % ew) + ew) % ew === 0;
+  }
+  // "daily-like": a habit that must be done on day k or it hurts at midnight
+  function isLab(k) { return !!(days[k] && days[k].lab); }
+  // follow-up habits (e.g. hang / fold laundry) appear only after their parent was done
+  function isAfter(h) { return !!h.after; }
+  function afterDue(h, k) { return isDone(h.after, addDays(k, -(Number(h.afterDays) || 0))); }
+  function mustDo(h, k) { if (isAfter(h)) return afterDue(h, k); if (isScheduled(h)) return !isLab(k) && scheduledOn(h, k); return h.perWeek >= 7; }
+  function isWeekly(h) { return !isScheduled(h) && !isAfter(h) && h.perWeek < 7; }
+  function dueOn(h, k) { if (isAfter(h)) return afterDue(h, k); if (isScheduled(h)) return !isLab(k) && scheduledOn(h, k); return h.perWeek >= 7 || weekCountTo(h.id, addDays(k, -1)) < h.perWeek || isDone(h.id, k); }
+  function weekIndex(k) { return Math.round((parseKey(mondayOf(k)) - new Date(2026, 0, 5)) / 6048e5); }
+  function displayName(h, k) { if (Array.isArray(h.rotation) && h.rotation.length) { const n = ((weekIndex(k) % h.rotation.length) + h.rotation.length) % h.rotation.length; return h.name + ": " + h.rotation[n]; } return h.name; }
+  function daysText(ds) { return WEEK_ORDER.filter(d => ds.includes(d)).map(d => DAYNAMES[d]).join(" & "); }
+  function freqText(h) { if (isAfter(h)) { const par = habitsAll.find(x => x.id === h.after); return (Number(h.afterDays) ? "the day after " : "after ") + (par ? par.name.toLowerCase() : "its parent task"); } if (isScheduled(h)) return daysText(h.days) + (h.everyWeeks > 1 ? ", every " + h.everyWeeks + " weeks" : ""); const p = h.perWeek; return p >= 7 ? "every day" : p === 1 ? "once a week" : p + "× a week"; }
+  function streakOf(h, k) {
+    let d = k, n = 0, guard = 0;
+    if (!isDone(h.id, d)) d = addDays(d, -1);
+    while (guard++ < 500) {
+      if (!activeOn(h, d)) break;
+      if (mustDo(h, d)) { if (isDone(h.id, d)) n++; else break; }
+      d = addDays(d, -1);
+    }
+    return n;
+  }
+
+  /* ================= plans / quests helpers ================= */
+  // the Monday right after the next prep Sunday (today if Sunday); skipped weeks roll forward
+  function prepWeekKey(k) { let w = addDays(k, (7 - dow(k)) % 7 + 1); let g = 0; while (plans[w] && plans[w].skipped && g++ < 10) w = addDays(w, 7); return w; }
+  function lastSkippedWeek(k) { const w = addDays(k, (7 - dow(k)) % 7 + 1); return plans[w] && plans[w].skipped ? w : null; }
+  function planOf(week) { return plans[week] || { week, recipes: [], dinners: [], extras: [], got: {}, steps: {} }; }
+  function milestonesDoneOn(k) {
+    let n = 0;
+    quests.forEach(q => (q.milestones || []).forEach(m => { if (m.doneAt === k) n++; }));
+    Object.values(plans).forEach(p => Object.values(p.steps || {}).forEach(v => { if (v === k) n++; }));
+    return n;
+  }
+  function questDoneDate(q) { const ms = q.milestones || []; if (!ms.length || ms.some(m => !m.doneAt)) return null; return ms.map(m => m.doneAt).sort().pop(); }
+  function prepComplete(plan, byKey) { return PREP_STEPS.every(([id]) => plan.steps && plan.steps[id] && plan.steps[id] <= byKey); }
+
+  /* ================= game engine ================= */
+  const xpFor = n => 50 * n * (n - 1);          // total XP needed to reach level n
+  const maxHp = lv => 30 + 5 * (lv - 1);
+  function levelOf(xp) { let l = 1; while (xp >= xpFor(l + 1)) l++; return l; }
+
+  function evaluateDay(k, level) {
+    const hs = habitsOn(k);
+    const daily = hs.filter(h => mustDo(h, k));
+    const weekly = hs.filter(h => isWeekly(h));
+    const doneDaily = daily.filter(h => isDone(h.id, k));
+    const missedDaily = daily.filter(h => !isDone(h.id, k));
+    const doneWeekly = weekly.filter(h => isDone(h.id, k));
+    const ms = milestonesDoneOn(k);
+    const mon = MONSTERS[hash(k) % MONSTERS.length];
+    const diff = Math.min(0.9, 0.5 + 0.05 * (level - 1) + (hash(k + "d") % 11) / 100);
+    const foeHp = Math.max(10, Math.round(daily.length * 10 * diff / 10) * 10);
+    const dealt = 10 * (doneDaily.length + doneWeekly.length + ms);
+    return { k, daily, weekly, doneDaily, missedDaily, doneWeekly, ms, monster: mon[0], lore: mon[1], foeHp, dealt, win: dealt >= foeHp };
+  }
+
+  function computeGame() {
+    const today = todayKey();
+    const start = game.startDate || today;
+    const S = { xp: 0, gold: 0, level: 1, members: {}, log: [] };
+    PARTY.forEach(p => S.members[p.id] = { hp: maxHp(1), ko: false, wins: 0, xp: 0, lv: 1, log: [] });
+    const mMax = id => maxHp(S.level) + 3 * (S.members[id].lv - 1);
+    const alive = () => PARTY.filter(p => !S.members[p.id].ko);
+    function hurt(id, n, why) { const m = S.members[id]; if (m.ko || n <= 0) return; m.hp = Math.max(0, m.hp - n); why.push({ id, n }); }
+    function heal(id, n) { const m = S.members[id]; if (m.ko) return; m.hp = Math.min(mMax(id), m.hp + n); }
+    function gainXp(n) {
+      const before = S.level; S.xp += n; S.level = levelOf(S.xp);
+      if (S.level > before) { PARTY.forEach(p => { const m = S.members[p.id]; m.hp = mMax(p.id); m.ko = false; m.wins = 0; }); return true; }
+      return false;
+    }
+    function spendOn(k) { purchases.filter(p => p.date === k).forEach(p => { S.gold = Math.max(0, S.gold - (Number(p.cost) || 0)); }); }
+
+    for (let k = start; k < today; k = addDays(k, 1)) {
+      if (days[k] && days[k].rest) { S.log.push({ k, restDay: true, monster: "", win: true, xp: 0, gold: 0, notes: ["Rest day. No fight, no damage, no XP."], dmg: [] }); spendOn(k); continue; }
+      const r = evaluateDay(k, S.level);
+      const dmg = [];
+      const entry = { k, monster: r.monster, win: r.win, xp: 0, gold: 0, notes: [] };
+      // XP and healing
+      let xp = 10 * r.doneDaily.length + 15 * r.doneWeekly.length + 10 * r.ms;
+      quests.forEach(q => { if (questDoneDate(q) === k) { xp += 40; entry.notes.push("Quest done: " + q.title); } });
+      [...r.doneDaily, ...r.doneWeekly].forEach(h => heal(GROUPS[h.group].member, 3));
+      for (let i = 0; i < r.ms; i++) heal("rogue", 3);
+      if (r.win) {
+        xp += 15; const g = 10 + 2 * S.level + (hash(k + "g") % 6); S.gold += g; entry.gold = g;
+        alive().forEach(p => heal(p.id, 2));
+      } else {
+        const lost = Math.floor(S.gold * 0.25); S.gold -= lost; entry.gold = -lost;
+        alive().forEach(p => hurt(p.id, 4, dmg));
+      }
+      // missed dailies
+      r.missedDaily.forEach(h => hurt(GROUPS[h.group].member, 6, dmg));
+      // Sunday checks
+      if (dow(k) === 0) {
+        const mon = mondayOf(k);
+        if (mon >= start && !isLab(k)) {
+          habitsOn(k).filter(h => isWeekly(h) && createdKey(h) <= mon).forEach(h => {
+            const short = h.perWeek - weekCountTo(h.id, k);
+            if (short > 0) { hurt(GROUPS[h.group].member, 6 * short, dmg); entry.notes.push(h.name + ": " + short + " short this week"); }
+          });
+        }
+        const plan = planOf(addDays(k, 1));
+        if (prepComplete(plan, k)) {
+          xp += 60; entry.rest = true; entry.notes.push("Lunch prep done. Long rest.");
+          PARTY.forEach(p => { const m = S.members[p.id]; m.ko = false; m.wins = 0; m.hp = mMax(p.id); });
+        } else if (isLab(k)) { entry.notes.push("Lab Sunday: lunch prep excused"); }
+        else if (k > start) { hurt("rogue", 8, dmg); entry.notes.push("Lunch prep not finished"); }
+      }
+      if (isLab(k)) { xp += 15; entry.lab = true; entry.notes.push("Lab day: weekend chores excused, +15 XP overtime bonus"); }
+      quests.forEach(q => { if (q.due === k && !(questDoneDate(q) && questDoneDate(q) <= k)) { hurt("rogue", 8, dmg); entry.notes.push("Quest overdue: " + q.title); } });
+      // XP loss on defeat (never below the current level's floor)
+      if (!r.win) { const floor = xpFor(S.level); const take = Math.min(10, Math.max(0, S.xp - floor)); S.xp -= take; xp -= 0; entry.xpLost = take; }
+      if (gainXp(xp)) entry.notes.push("Level up! Reached level " + S.level + ".");
+      entry.xp = xp - (entry.xpLost || 0);
+      // each member grows from their own kind of task, and keeps a personal log
+      const mg = {}, did = {}, missed = {};
+      PARTY.forEach(p => { mg[p.id] = 0; did[p.id] = []; missed[p.id] = []; });
+      r.doneDaily.forEach(h => { const id = GROUPS[h.group].member; mg[id] += 10; did[id].push(displayName(h, k)); });
+      r.doneWeekly.forEach(h => { const id = GROUPS[h.group].member; mg[id] += 15; did[id].push(displayName(h, k)); });
+      r.missedDaily.forEach(h => missed[GROUPS[h.group].member].push(displayName(h, k)));
+      if (r.ms) { mg.rogue += 10 * r.ms; did.rogue.push(r.ms + " milestone" + (r.ms === 1 ? "" : "s")); }
+      quests.forEach(q => { if (questDoneDate(q) === k) { mg.rogue += 20; did.rogue.push("Quest: " + q.title); } });
+      if (entry.rest) { mg.rogue += 30; did.rogue.push("Lunch prep"); }
+      const hurtBy = {}; dmg.forEach(d => hurtBy[d.id] = (hurtBy[d.id] || 0) + d.n);
+      PARTY.forEach(p => {
+        const m = S.members[p.id]; const before = m.lv;
+        m.xp += mg[p.id]; m.lv = levelOf(m.xp);
+        const notes = [];
+        if (m.lv > before) { notes.push("Reached level " + m.lv); m.hp = mMax(p.id); }
+        if (mg[p.id] || hurtBy[p.id] || missed[p.id].length || notes.length) m.log.push({ k, xp: mg[p.id], dmg: hurtBy[p.id] || 0, did: did[p.id], missed: missed[p.id], notes });
+      });
+      // knock-outs and revivals
+      PARTY.forEach(p => {
+        const m = S.members[p.id];
+        if (!m.ko && m.hp <= 0) { m.ko = true; m.wins = 0; entry.notes.push(p.name + " went down"); }
+        else if (m.ko) {
+          if (r.win) { m.wins++; if (m.wins >= 2) { m.ko = false; m.wins = 0; m.hp = Math.ceil(mMax(p.id) * 0.4); entry.notes.push(p.name + " is back on their feet"); } }
+          else m.wins = 0;
+        }
+      });
+      if (PARTY.every(p => S.members[p.id].ko)) {
+        const lv = Math.max(1, S.level - 1); S.xp = xpFor(lv); S.level = lv; S.gold = Math.floor(S.gold / 2);
+        PARTY.forEach(p => { const m = S.members[p.id]; m.ko = false; m.wins = 0; m.hp = Math.ceil(mMax(p.id) * 0.5); });
+        entry.wipe = true; entry.notes.push("The whole party fell. Lost a level and half the gold.");
+      }
+      entry.dmg = dmg;
+      spendOn(k);
+      S.log.push(entry);
+    }
+    spendOn(today);
+    PARTY.forEach(p => S.members[p.id].max = mMax(p.id));
+    return S;
+  }
+
+  /* ================= rendering: shared ================= */
+  function sigil(p) {
+    return '<svg class="sigil" viewBox="0 0 26 30" aria-hidden="true"><path d="M13 1.5l10.5 4v9c0 7-4.6 11.5-10.5 14-5.9-2.5-10.5-7-10.5-14v-9z" fill="' + p.color + '" opacity=".16" stroke="' + p.color + '" stroke-width="1.5"/><path d="' + p.glyph + '" fill="none" stroke="' + p.color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  function bar(pct, color) { return '<div class="bar" style="--c:' + color + '"><span style="width:' + Math.max(0, Math.min(100, pct)) + '%"></span></div>'; }
+
+  let G = null;
+  function renderParty() {
+    G = computeGame();
+    const mh = maxHp(G.level);
+    $("sLevel").textContent = G.level; $("sGold").textContent = G.gold;
+    $("party").innerHTML = PARTY.map(p => {
+      const m = G.members[p.id], mx = m.max || mh; const pct = m.hp / mx * 100;
+      const low = pct <= 30;
+      return '<button type="button" class="pm' + (m.ko ? " ko" : "") + (low && !m.ko ? " low" : "") + '" title="' + esc(p.name) + ', ' + p.cls + ' level ' + m.lv + ': ' + m.hp + '/' + mx + ' HP" aria-label="' + esc(p.name) + ', ' + p.cls + ', level ' + m.lv + ', ' + (m.ko ? "down" : m.hp + " of " + mx + " HP") + '"><span class="pm-port">' + portrait(p) + '<span class="lvb">' + m.lv + '</span></span>' + bar(pct, low ? "var(--hurt)" : "var(--hp)") + '<span class="hpn">' + (m.ko ? "down" : m.hp + "/" + mx) + '</span></button>';
+    }).join("");
+    $("party").querySelectorAll(".pm").forEach(b => b.onclick = () => setTab("party"));
+    const lo = xpFor(G.level), hi = xpFor(G.level + 1);
+    $("xpLabel").textContent = (G.xp - lo) + " / " + (hi - lo) + " XP to level " + (G.level + 1);
+    $("xpBar").style.width = ((G.xp - lo) / (hi - lo) * 100) + "%";
+    const t = evaluateDay(todayKey(), G.level);
+    const pendingXp = 10 * t.doneDaily.length + 15 * t.doneWeekly.length + 10 * t.ms;
+    $("xpToday").textContent = pendingXp ? "+" + pendingXp + " XP tonight, banked at midnight" : "";
+  }
+
+  function renderAll() {
+    renderParty();
+    if (tab === "tonight") renderTonight();
+    if (tab === "party") renderPartyTab();
+    if (tab === "lunch") renderLunch();
+    if (tab === "quests") renderQuests();
+  }
+
+  /* ================= tonight ================= */
+  const START = 18 * 60 + 30, FREE = 21 * 60 + 30, END = 24 * 60, SPAN = END - START;
+  const NUDGES = [18 * 60 + 45, 19 * 60 + 45, 20 * 60 + 45];
+  const FREE_GROUP = "hobby";
+  (function drawTicks() {
+    const tr = $("track");
+    const band = document.createElement("div"); band.className = "freeband"; band.style.left = ((FREE - START) / SPAN * 100) + "%"; tr.appendChild(band);
+    NUDGES.forEach(t => { const d = document.createElement("div"); d.className = "tick"; d.style.left = ((t - START) / SPAN * 100) + "%"; tr.appendChild(d); });
+    const n = document.createElement("div"); n.className = "now"; n.id = "nowDot"; tr.appendChild(n);
+    const sc = $("scale");
+    [[START, "18:30"], [20 * 60, "20:00"], [FREE, "21:30 free time"], [23 * 60, "23:00"], [END, "00:00"]].forEach(([t, txt]) => {
+      const s = document.createElement("span"); s.textContent = txt; const pct = (t - START) / SPAN * 100;
+      s.style.left = pct + "%"; s.style.transform = pct >= 100 ? "translateX(-100%)" : pct > 0 ? "translateX(-50%)" : "none";
+      if (t === FREE) s.className = "free"; sc.appendChild(s);
+    });
+  })();
+  function nowMins() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+  function inFreeTime() { const m = nowMins(); return m >= FREE || m < 4 * 60; }
+  /* ---------- weekend game time ---------- */
+  const GAME_MIN = 7, GAME_MAX = 10;
+  function isWeekend(k) { const w = dow(k); return w === 0 || w === 6; }
+  function gameHours(k) { return Number(days[k] && days[k].game) || 0; }
+  function renderWeekend() {
+    const box = $("weekendCard");
+    const wk = isWeekend(viewDate);
+    box.hidden = !wk; $("timelineBox").hidden = wk;
+    // weekdays: plan lab weekends ahead
+    const lp = $("labPlan"); lp.innerHTML = "";
+    if (!wk && viewDate === todayKey()) {
+      const sat = addDays(viewDate, 6 - dow(viewDate)), sun = addDays(sat, 1);
+      const lbl = document.createElement("span"); lbl.className = "small muted"; lbl.textContent = "Lab this weekend?";
+      const chips = document.createElement("div"); chips.className = "daychips";
+      [[sat, "Sat"], [sun, "Sun"]].forEach(([k, t]) => { const c = mkBtn(t, "", () => writeDay(k, { lab: !isLab(k) })); c.setAttribute("aria-pressed", String(isLab(k))); c.setAttribute("aria-label", "Lab day on " + niceDate(k)); chips.appendChild(c); });
+      lp.append(lbl, chips);
+      if (isLab(sat) || isLab(sun)) { const n = document.createElement("span"); n.className = "small muted"; n.textContent = "Weekend chores excused on the marked days."; lp.appendChild(n); }
+    }
+    if (!wk) return;
+    const sat = dow(viewDate) === 6 ? viewDate : addDays(viewDate, -1), sun = addDays(sat, 1);
+    const total = gameHours(sat) + gameHours(sun), mine = gameHours(viewDate);
+    const isSat = viewDate === sat;
+    const choresLeft = habitsOn(viewDate).filter(h => dueOn(h, viewDate) && !isDone(h.id, viewDate) && h.group !== FREE_GROUP).length;
+    const nextPlan = planOf(addDays(viewDate, 1));
+    const lab = isLab(viewDate);
+    const prepLeft = !isSat && !nextPlan.skipped && !lab ? PREP_STEPS.filter(([id]) => !(nextPlan.steps || {})[id]).length : 0;
+    const pct = Math.min(100, total / GAME_MAX * 100), minPct = GAME_MIN / GAME_MAX * 100;
+    let status;
+    if (lab) status = "Lab day. Weekend chores" + (isSat ? "" : ", lunch prep") + " and weekly targets are excused. Only the daily basics count: " + choresLeft + " left. +15 XP overtime bonus at midnight.";
+    else if (choresLeft || prepLeft) status = (choresLeft ? choresLeft + " chore" + (choresLeft === 1 ? "" : "s") : "") + (choresLeft && prepLeft ? " and " : "") + (prepLeft ? prepLeft + " lunch prep step" + (prepLeft === 1 ? "" : "s") : "") + " left before game time. Do them in one block, then you're free.";
+    else status = "Duties done for today. The rest of the day is game time.";
+    box.innerHTML =
+      '<div class="eyebrow">Weekend · ' + (lab ? "Lab day: wild card played" : isSat ? "Saturday: chores block, then play" : "Sunday: lunch prep, then play") + '</div>' +
+      '<div class="between"><h2>Game time</h2><span class="mono small muted">' + total + ' h this weekend · goal ' + GAME_MIN + '–' + GAME_MAX + ' h</span></div>' +
+      '<div class="gamebar"><span class="gfill" style="width:' + pct + '%"></span><span class="gmin" style="left:' + minPct + '%"></span></div>' +
+      '<p class="small muted"></p>' +
+      '<div class="row"><span class="small">Played ' + (isSat ? "Saturday" : "Sunday") + ':</span><span class="stepper"><button type="button" id="gMinus" aria-label="Half an hour less">−</button><span class="mono small" style="min-width:3.5em;text-align:center">' + mine + ' h</span><button type="button" id="gPlus" aria-label="Half an hour more">+</button></span><button type="button" class="btn-small" id="gPlus2">+2 h</button></div>';
+    box.querySelector("p").textContent = status;
+    const set = v => setGame(viewDate, Math.max(0, Math.min(16, v)));
+    $("gMinus").onclick = () => set(mine - 0.5); $("gPlus").onclick = () => set(mine + 0.5); $("gPlus2").onclick = () => set(mine + 2);
+    const lr = document.createElement("div"); lr.className = "row";
+    const lk = "lab:" + viewDate;
+    if (lab) lr.appendChild(mkBtn("Undo lab day", "btn-small", () => writeDay(viewDate, { lab: false })));
+    else lr.appendChild(mkBtn(confirmBox[lk] ? "Confirm: I'm working today" : "Working in the lab today? Play the lab wild card", "btn-small" + (confirmBox[lk] ? " danger" : ""), () => confirmThen(lk, () => writeDay(viewDate, { lab: true }))));
+    box.appendChild(lr);
+    if (viewDate > addDays(todayKey(), 6)) box.querySelectorAll("button").forEach(b => b.disabled = true);
+    else if (viewDate > todayKey()) [$("gMinus"), $("gPlus"), $("gPlus2")].forEach(b => b.disabled = true);
+  }
+  function setGame(k, v) {
+    writeDay(k, { game: v });
+  }
+
+  function renderTimeline() {
+    renderWeekend();
+    const isToday = viewDate === todayKey();
+    const d = new Date(), mins = nowMins();
+    const dot = $("nowDot"), fill = $("fill"), note = $("tlNote");
+    const hm = pad(d.getHours()) + ":" + pad(d.getMinutes());
+    if (viewDate > todayKey()) { dot.hidden = true; fill.style.width = "0"; note.textContent = "Preview of " + niceDate(viewDate) + ". Chores first from 18:30, free time from 21:30."; return; }
+    if (!isToday) { dot.hidden = true; fill.style.width = "100%"; note.textContent = "Looking back at " + niceDate(viewDate) + ". Tick what you did; past nights are scored again from the new ticks."; return; }
+    if (mins < START) { dot.hidden = true; fill.style.width = "0"; note.textContent = "Duty time starts when you get home at 18:30. Chores first, then free time from 21:30."; return; }
+    const pct = (mins - START) / SPAN * 100; dot.hidden = false; dot.style.left = pct + "%"; fill.style.width = Math.min(pct, (FREE - START) / SPAN * 100) + "%";
+    if (mins < FREE) { const left = FREE - mins; note.textContent = "It's " + hm + ". Duty time: " + Math.floor(left / 60) + " h " + pad(left % 60) + " min until free time at 21:30."; }
+    else note.textContent = "It's " + hm + ". Free time: read your 30 minutes, then play. Tonight's fight is scored at midnight.";
+  }
+
+  function renderTodo(shownList, isToday, isFuture) {
+    const box = $("todo"); box.innerHTML = "";
+    const k = viewDate, gOrder = Object.keys(GROUPS), preStart = k < (game.startDate || todayKey());
+    const isFree = h => h.group === FREE_GROUP;
+    const sortFn = (a, b) => gOrder.indexOf(a.group) - gOrder.indexOf(b.group) || (a.order || 0) - (b.order || 0);
+    const must = shownList.filter(h => !isFree(h) && mustDo(h, k)).sort(sortFn);
+    const opt = shownList.filter(h => !isFree(h) && !mustDo(h, k)).sort(sortFn);
+    const free = shownList.filter(h => isFree(h)).sort(sortFn);
+    const all = must.concat(opt, free);
+    const doneN = all.filter(h => isDone(h.id, k)).length;
+    $("count").textContent = all.length ? doneN + " / " + all.length + " done" : "";
+    $("todoFill").style.width = (all.length ? doneN / all.length * 100 : 0) + "%";
+    const mustOpen = must.filter(h => !isDone(h.id, k));
+    let note = "";
+    if (isFuture) note = "Preview. You can tick these on the day.";
+    else if (preStart) note = "Setup day: nothing is scored yet. Have a look at how a normal evening will feel.";
+    else if (!all.length) note = "Nothing due. Enjoy the evening.";
+    else if (!mustOpen.length && doneN === all.length) note = "Everything's done. Go read and play.";
+    else if (!mustOpen.length) note = "The must-dos are done. Anything else is a bonus.";
+    else if (isToday && !inFreeTime()) { const left = FREE - nowMins(); note = mustOpen.length + " must-do" + (mustOpen.length === 1 ? "" : "s") + " left" + (left > 0 && nowMins() >= START ? " · " + Math.floor(left / 60) + " h " + pad(left % 60) + " min until free time" : "") + ". Start at the top."; }
+    else note = mustOpen.length + " must-do" + (mustOpen.length === 1 ? "" : "s") + " still open. Each one left at midnight costs its guardian 6 HP.";
+    $("todoNote").textContent = note;
+    let firstMarked = false;
+    const row = (h, kind) => {
+      const done = isDone(h.id, k);
+      const b = document.createElement("button"); b.type = "button";
+      const first = !done && !firstMarked && !isFuture && kind !== "free"; if (first) firstMarked = true;
+      b.className = "titem" + (done ? " done" : "") + (first ? " first" : ""); b.setAttribute("aria-pressed", String(done));
+      b.style.setProperty("--c", GROUPS[h.group].color);
+      b.innerHTML = '<span class="check">' + CHECK + '</span><span class="tname"></span><span class="tside"></span>';
+      const nm = b.querySelector(".tname");
+      if (first) { const sh = document.createElement("span"); sh.className = "starthere"; sh.textContent = "Start here"; sh.style.display = "block"; nm.appendChild(sh); }
+      nm.appendChild(document.createTextNode(displayName(h, k)));
+      const meta = document.createElement("span"); meta.className = "tmeta";
+      let mt = "";
+      if (isAfter(h)) mt = freqText(h);
+      else if (isScheduled(h)) mt = freqText(h);
+      else if (h.perWeek < 7) mt = weekCountTo(h.id, k) + "/" + h.perWeek + " this week";
+      else { const st = streakOf(h, k); if (st > 1) mt = st + " in a row"; }
+      meta.textContent = mt; if (mt) nm.appendChild(meta);
+      const side = b.querySelector(".tside");
+      const gp = PARTY.find(x => x.id === GROUPS[h.group].member);
+      if (!done && kind === "must" && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.title = gp.name + " takes 6 damage if this is left undone"; }
+      else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.title = "XP for " + gp.name; }
+      b.onclick = () => toggleDay(h.id, k);
+      if (isFuture) b.disabled = true;
+      return b;
+    };
+    const section = (title, sub, list, kind) => {
+      const open = list.filter(h => !isDone(h.id, k));
+      if (!open.length) return;
+      const sec = document.createElement("div"); sec.className = "tsec";
+      sec.innerHTML = '<div class="tsec-h"><span class="eyebrow"></span><span class="small muted"></span></div>';
+      sec.querySelector(".eyebrow").textContent = title; sec.querySelector(".small").textContent = sub;
+      open.forEach(h => { sec.appendChild(row(h, kind)); if (h.link === "dinner" && !isFuture) { const pd = plannedDinners(k); if (pd.length) sec.appendChild(recipeChips(pd)); } });
+      box.appendChild(sec);
+    };
+    section("Must do today", "missed = damage at midnight", must, "must");
+    // Sunday lunch prep shows up as part of the day's list
+    const prepWeek = addDays(k, 1), prepPlan = planOf(prepWeek);
+    if (dow(k) === 0 && !isLab(k) && !prepPlan.skipped && !isFuture) {
+      const openSteps = PREP_STEPS.filter(([id]) => !(prepPlan.steps || {})[id]);
+      if (openSteps.length) {
+        const sec = document.createElement("div"); sec.className = "tsec";
+        sec.innerHTML = '<div class="tsec-h"><span class="eyebrow">Lunch prep</span><span class="small muted">' + (5 - openSteps.length) + ' of 5 · long rest when done</span></div>';
+        openSteps.forEach(([id, text]) => {
+          const b = document.createElement("button"); b.type = "button"; b.className = "titem"; b.style.setProperty("--c", "var(--rogue)");
+          b.innerHTML = '<span class="check">' + CHECK + '</span><span class="tname"></span><span class="tside">10 XP</span>';
+          b.querySelector(".tname").textContent = text;
+          b.onclick = () => { const p = clonePlan(prepWeek); p.steps[id] = todayKey(); savePlan(p); };
+          sec.appendChild(b);
+          if (id === "cook") { const lc = (prepPlan.recipes || []).map(r => ({ rc: recipes.find(x => x.id === r.id), kind: "lunch", count: r.portions, week: prepWeek })).filter(o => o.rc); if (lc.length) sec.appendChild(recipeChips(lc)); }
+        });
+        const go = mkBtn("Open recipes and shopping list", "btn-small", () => setTab("lunch")); sec.appendChild(go);
+        box.appendChild(sec);
+      }
+    }
+    section("If you have time", "weekly targets, any day", opt, "opt");
+    section("Free time", "from 21:30", free, "free");
+    const doneList = all.filter(h => isDone(h.id, k));
+    if (doneList.length) {
+      const d = document.createElement("details"); d.className = "done-box"; d.open = !!openRecipe.__doneOpen;
+      d.addEventListener("toggle", () => { openRecipe.__doneOpen = d.open; });
+      const sm = document.createElement("summary"); sm.textContent = "Done (" + doneList.length + ") · tap to undo"; d.appendChild(sm);
+      const inner = document.createElement("div"); inner.className = "tsec"; inner.style.marginTop = "6px";
+      doneList.forEach(h => inner.appendChild(row(h, "done")));
+      d.appendChild(inner); box.appendChild(d);
+    }
+    if (!all.length) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = visibleHabits().length ? "Nothing due on this day." : "No habits yet. Add one under Edit habits."; box.appendChild(p); }
+  }
+
+  function renderTonight() {
+    const today = todayKey(), isToday = viewDate === today, isFuture = viewDate > today;
+    const startK = game.startDate || today;
+    $("dateLabel").textContent = isToday ? "Today, " + parseKey(viewDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : (viewDate === addDays(today, 1) ? "Tomorrow, " + parseKey(viewDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : niceDate(viewDate));
+    $("next").disabled = viewDate >= addDays(today, MAX_AHEAD); $("prev").disabled = viewDate <= startK; $("todayBtn").hidden = isToday;
+    $("listTitle").textContent = isToday ? "Tonight" : isFuture ? "Coming up" : "That evening";
+    renderTimeline();
+
+    const list = visibleHabits();
+    const shownList = habitsOn(viewDate).filter(h => dueOn(h, viewDate));
+    const doneN = shownList.filter(h => isDone(h.id, viewDate)).length;
+    $("count").textContent = shownList.length ? doneN + " of " + shownList.length + " done" : "";
+
+    // encounter
+    const r = evaluateDay(viewDate, G.level);
+    const enc = $("encounter"); enc.classList.toggle("won", r.win && !isFuture);
+    const left = Math.max(0, r.foeHp - r.dealt);
+    let threat = "";
+    if (isToday && !r.win && viewDate >= startK) {
+      let tot = r.missedDaily.length * 6; PARTY.forEach(p => { if (!G.members[p.id].ko) tot += 4; });
+      threat = '<div class="threat-line" title="If the night ended now"><span class="tl-lbl">At midnight:</span><span>' + ICON.heart + '−' + tot + '</span><span>' + ICON.star + '−10</span><span>' + ICON.coin + '−' + Math.floor(G.gold * 0.25) + '</span></div>';
+    }
+    const need = Math.ceil(r.foeHp / 10), landed = Math.min(need, Math.floor(r.dealt / 10));
+    const swords = Array.from({ length: need }, (_, i) => '<span class="sw' + (i < landed ? " on" : "") + '">' + ICON.sword + '</span>').join("");
+    const hitNow = isToday && Date.now() - lastHit < 1600;
+    enc.innerHTML =
+      '<div class="foe"><div class="foe-icon' + (hitNow ? " hit" : "") + (r.win ? " dead" : "") + '">' + foeIcon(r.monster) + (hitNow ? '<span class="dmgfloat">−10</span>' : "") + '</div>' +
+      '<div style="min-width:0;flex:1"><div class="eyebrow">' + (isToday ? "Tonight" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div>' +
+      '<div class="foe-hpbig">' + ICON.heart + '<b>' + left + '</b></div></div>' +
+      '<div class="foe-hp">' + bar(left / r.foeHp * 100, "var(--hurt)") + '</div>' +
+      '<div class="hits"><div class="swords" aria-label="' + landed + ' of ' + need + ' hits">' + swords + '</div><span class="hitlbl">' + (r.win ? "Defeated!" : (need - landed) + " more to win") + '</span></div>' + threat;
+    if (isFuture) enc.innerHTML = '<div class="foe"><div class="foe-icon">' + foeIcon(r.monster) + '</div><div style="min-width:0;flex:1"><div class="eyebrow">' + (viewDate === addDays(today, 1) ? "Tomorrow" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div><div class="foe-hpbig">' + ICON.heart + '<b>' + r.foeHp + '</b></div></div><div class="hits"><div class="swords">' + Array.from({ length: need }, () => '<span class="sw">' + ICON.sword + '</span>').join("") + '</div><span class="hitlbl">' + need + ' tasks to kill</span></div>';
+    if (viewDate < startK) { enc.classList.add("won"); enc.innerHTML = '<div class="eyebrow">Setup day</div><div class="foe-name">The adventure starts ' + (startK === addDays(today, 1) ? "tomorrow" : niceDate(startK)) + '</div><p class="small muted">Nothing today is scored. Tick things if you like, it costs nothing.</p>'; }
+    // rest day
+    const resting = !!(days[viewDate] && days[viewDate].rest);
+    if (resting) {
+      enc.classList.add("won");
+      enc.innerHTML = '<div class="eyebrow">Rest day</div><div class="foe-name">The party is resting</div><p class="small muted">No monster, no damage and no XP for ' + (isToday ? "today" : niceDate(viewDate)) + '. Tick anything you still manage; it just won\'t be scored.</p>';
+    }
+    if (viewDate <= addDays(today, MAX_AHEAD) && viewDate >= startK) {
+      const rk = "rest:" + viewDate, rl = restLeft(viewDate);
+      const rr = document.createElement("div"); rr.className = "row";
+      if (resting) rr.appendChild(mkBtn("Cancel rest day", "btn-small", () => writeDay(viewDate, { rest: false })));
+      else {
+        const b = mkBtn(confirmBox[rk] ? "Confirm rest day" : "Sick or away? Take a rest day", "btn-small" + (confirmBox[rk] ? " danger" : ""), () => confirmThen(rk, () => writeDay(viewDate, { rest: true })));
+        if (rl <= 0) { b.disabled = true; b.title = "No rest days left this month"; }
+        const s = document.createElement("span"); s.className = "small muted"; s.textContent = rl + " of " + REST_PER_MONTH + " left this month";
+        rr.append(b, s);
+      }
+      enc.appendChild(rr);
+    }
+
+    // to-do list: must-do first, then optional, then free time; done items fold away
+    renderTodo(shownList, isToday, isFuture);
+
+    // week grid
+    const t = $("week"); t.innerHTML = "";
+    if (list.length) {
+      const cols = []; for (let i = 6; i >= 0; i--) cols.push(addDays(viewDate, -i));
+      let html = "<tr><th></th>" + cols.map(k => "<th>" + parseKey(k).toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 2) + "<br>" + parseKey(k).getDate() + "</th>").join("") + "</tr>";
+      t.innerHTML = html;
+      list.forEach(h => {
+        const tr = document.createElement("tr"); tr.style.setProperty("--c", GROUPS[h.group].color);
+        const nm = document.createElement("td"); nm.textContent = h.name; tr.appendChild(nm);
+        cols.forEach(k => {
+          const td = document.createElement("td"); const on = isDone(h.id, k);
+          const c = document.createElement("button"); c.type = "button"; c.className = "cell" + (on ? " on" : "") + (k === viewDate ? " sel" : "");
+          c.setAttribute("aria-label", h.name + ", " + niceDate(k) + (on ? ", done" : ", not done")); c.setAttribute("aria-pressed", String(on));
+          if (k > today || !activeOn(h, k)) c.disabled = true;
+          if (isScheduled(h) && !scheduledOn(h, k) && !on) c.style.opacity = "0.35";
+          c.onclick = () => toggleDay(h.id, k);
+          td.appendChild(c); tr.appendChild(td);
+        });
+        t.appendChild(tr);
+      });
+    }
+
+    // day strip (last 7 days ending at the viewed day)
+    const ds = $("dayStrip"); ds.innerHTML = "";
+    const logBy = {}; (G.log || []).forEach(e => logBy[e.k] = e);
+    for (let i = 6; i >= 0; i--) {
+      const dk = addDays(viewDate, -i);
+      const due = habitsOn(dk).filter(h => dueOn(h, dk)); const dn = due.filter(h => isDone(h.id, dk)).length;
+      const t = document.createElement("button"); t.type = "button"; t.className = "dtile" + (dk === viewDate ? " sel" : "");
+      const e = logBy[dk];
+      let res = "", cls = "other";
+      if (dk < (game.startDate || today)) res = "setup";
+      else if (days[dk] && days[dk].rest) res = "rest";
+      else if (dk === today) res = "today";
+      else if (dk > today) res = "";
+      else if (e) { res = e.win ? "won" : "lost"; cls = e.win ? "win" : "loss"; if (e.lab) res += "·lab"; }
+      t.innerHTML = '<span class="dn">' + parseKey(dk).toLocaleDateString("en-GB", { weekday: "short" }) + '</span><span class="dd">' + parseKey(dk).getDate() + '</span><span class="dbar"><span style="width:' + (due.length ? dn / due.length * 100 : 0) + '%"></span></span><span class="dc">' + (due.length ? dn + "/" + due.length : "–") + '</span><span class="dr ' + cls + '">' + res + '</span>';
+      t.setAttribute("aria-label", niceDate(dk) + ": " + dn + " of " + due.length + " done" + (res ? ", " + res : ""));
+      if (dk < (game.startDate || today) || dk > addDays(today, MAX_AHEAD)) t.disabled = true;
+      t.onclick = () => { viewDate = dk; skip = 0; renderTonight(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+      ds.appendChild(t);
+    }
+
+    // manage
+    const ml = $("mlist"); ml.innerHTML = "";
+    list.forEach((h, i) => {
+      const r2 = document.createElement("div"); r2.className = "mrow";
+      r2.innerHTML = '<span class="grow"></span><span class="small muted">' + esc(GROUPS[h.group].label) + " · " + esc(freqText(h)) + (h.rotation ? " · rotates weekly" : "") + '</span>';
+      r2.querySelector(".grow").textContent = h.name;
+      if (isScheduled(h)) {
+        const chips = document.createElement("div"); chips.className = "daychips"; chips.style.flexBasis = "100%";
+        WEEK_ORDER.forEach(d => {
+          const on = h.days.includes(d);
+          const c = mkBtn(DAYNAMES[d], "", () => {
+            const nd = on ? h.days.filter(x => x !== d) : h.days.concat(d);
+            if (!nd.length) { $("hStatus").textContent = "Keep at least one day, or remove the habit."; return; }
+            if (ready()) db.collection("habits").doc(h.id).update({ days: nd }).catch(writeErr);
+          });
+          c.setAttribute("aria-pressed", String(on)); c.setAttribute("aria-label", h.name + " on " + DAYNAMES[d]);
+          chips.appendChild(c);
+        });
+        r2._chips = chips;
+      }
+      const up = mkBtn("↑", "btn-small", () => moveHabit(h, -1)); up.setAttribute("aria-label", "Move " + h.name + " up"); if (i === 0) up.disabled = true;
+      const key = "h:" + h.id;
+      const del = mkBtn(confirmBox[key] ? "Confirm remove" : "Remove", "btn-small" + (confirmBox[key] ? " danger" : ""), () => confirmThen(key, () => archiveHabit(h)));
+      r2.append(up, del); if (r2._chips) r2.appendChild(r2._chips); ml.appendChild(r2);
+    });
+  }
+  function memberName(group) { const p = PARTY.find(x => x.id === GROUPS[group].member); return p ? p.name : ""; }
+  function foeIcon(name) {
+    const h = hash(name); const eyes = 2 + (h % 2);
+    const tints = ["var(--hurt)", "var(--rogue)", "var(--hobby)", "var(--house)"];
+    let s = '<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">';
+    if ((h >> 3) % 2) s += '<path d="M9 12L6 3l7 6M25 12l3-9-7 6" fill="' + tints[h % 4] + '"/>';
+    s += '<path d="M5 30c0-14 5-24 12-24s12 10 12 24l-4-3-4 3-4-3-4 3-4-3z" fill="' + tints[h % 4] + '" opacity=".88"/>';
+    if ((h >> 5) % 2) s += '<path d="M12 23l2 2 2-2 2 2 2-2 2 2" fill="none" stroke="var(--surface)" stroke-width="1.4" stroke-linejoin="round"/>';
+    for (let i = 0; i < eyes; i++) { const x = eyes === 2 ? 13 + i * 8 : 11 + i * 6; s += '<circle cx="' + x + '" cy="16" r="2.4" fill="var(--surface)"/><circle cx="' + x + '" cy="16.6" r="1.1" fill="var(--ink)"/>'; }
+    return s + "</svg>";
+  }
+  function mkBtn(text, cls, fn) { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.onclick = fn; return b; }
+  function confirmThen(key, fn) {
+    if (confirmBox[key]) { delete confirmBox[key]; fn(); return; }
+    confirmBox[key] = true; renderAll();
+    setTimeout(() => { if (confirmBox[key]) { delete confirmBox[key]; renderAll(); } }, 4000);
+  }
+
+  /* ================= party tab ================= */
+  function renderPartyTab() {
+    $("members").innerHTML = "";
+    PARTY.forEach(p => {
+      const m = G.members[p.id], mx = m.max || maxHp(G.level);
+      const lo = xpFor(m.lv), hi = xpFor(m.lv + 1);
+      const card = document.createElement("div"); card.className = "panel mcard";
+      card.innerHTML = '<div class="mhead"><span class="' + (m.ko ? "ko-portrait" : "") + '">' + portrait(p, 60) + '</span>' +
+        '<div class="stack" style="gap:5px;min-width:0;flex:1"><div class="between"><h3>' + esc(p.name) + '</h3><span class="lvpill">' + p.cls + ' · Lv ' + m.lv + '</span></div>' +
+        '<div class="statrow">' + ICON.heart + bar(m.hp / mx * 100, m.hp / mx <= 0.3 ? "var(--hurt)" : "var(--hp)") + '<span class="mono small">' + (m.ko ? "down" : m.hp + "/" + mx) + '</span></div>' +
+        '<div class="statrow">' + ICON.star + bar((m.xp - lo) / (hi - lo) * 100, "var(--hobby)") + '<span class="mono small">' + (m.xp - lo) + "/" + (hi - lo) + '</span></div>' +
+        '<span class="small muted">Grows from: ' + esc(p.guards) + (m.ko ? ' · <b style="color:var(--hurt)">down, ' + (2 - m.wins) + ' win' + (2 - m.wins === 1 ? "" : "s") + ' to get up</b>' : "") + '</span></div></div>';
+      const det = document.createElement("details"); det.className = "mlog"; det.open = !!openRecipe["log:" + p.id];
+      det.addEventListener("toggle", () => { openRecipe["log:" + p.id] = det.open; });
+      const sm = document.createElement("summary"); sm.textContent = p.name.split(" ").pop() + "'s log"; det.appendChild(sm);
+      const list = document.createElement("div"); list.className = "log";
+      const entries = (m.log || []).slice(-10).reverse();
+      if (!entries.length) list.innerHTML = '<p class="small muted">Nothing yet. Their story starts tonight.</p>';
+      entries.forEach(e => {
+        const row = document.createElement("div"); row.className = "log-row";
+        row.innerHTML = '<div class="log-date">' + niceDate(e.k) + '</div><div class="stack" style="gap:2px"><div class="row" style="gap:10px">' + (e.xp ? '<span class="chip">' + ICON.star + '+' + e.xp + '</span>' : "") + (e.dmg ? '<span class="chip bad">' + ICON.heart + '−' + e.dmg + '</span>' : "") + (e.notes.length ? '<span class="chip lvl">' + esc(e.notes.join(" · ")) + '</span>' : "") + '</div><div class="small muted lg-did"></div><div class="small lg-miss" style="color:var(--hurt)"></div></div>';
+        row.querySelector(".lg-did").textContent = e.did.length ? "✓ " + e.did.join(", ") : "";
+        row.querySelector(".lg-miss").textContent = e.missed.length ? "✗ " + e.missed.join(", ") : "";
+        list.appendChild(row);
+      });
+      det.appendChild(list); card.appendChild(det);
+      $("members").appendChild(card);
+    });
+
+    // rewards
+    const rw = $("rewards"); rw.innerHTML = "";
+    if (!rewards.length) rw.innerHTML = '<p class="small muted">No rewards yet. Add something you actually want, then earn it.</p>';
+    rewards.slice().sort((a, b) => a.cost - b.cost).forEach(r => {
+      const row = document.createElement("div"); row.className = "reward";
+      row.innerHTML = '<span class="grow"></span><span class="cost">' + r.cost + ' g</span>';
+      row.querySelector(".grow").textContent = r.name;
+      const key = "buy:" + r.id;
+      const buy = mkBtn(confirmBox[key] ? "Confirm" : "Claim", "btn-small", () => confirmThen(key, () => buyReward(r)));
+      if (G.gold < r.cost) { buy.disabled = true; buy.title = "Not enough gold yet"; }
+      const dkey = "rdel:" + r.id;
+      const del = mkBtn(confirmBox[dkey] ? "Confirm remove" : "×", "btn-small" + (confirmBox[dkey] ? " danger" : ""), () => confirmThen(dkey, () => delDoc("rewards", r.id)));
+      del.setAttribute("aria-label", "Remove " + r.name);
+      row.append(buy, del); rw.appendChild(row);
+    });
+    const recent = purchases.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 3);
+    if (recent.length) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = "Recently claimed: " + recent.map(x => x.name + " (" + niceDate(x.date) + ")").join(", "); rw.appendChild(p); }
+
+    // log
+    const lg = $("log");
+    const entries = G.log.slice(-14).reverse();
+    if (!entries.length) { lg.innerHTML = '<p class="small muted">Your first night is scored at midnight. Results show up here.</p>'; return; }
+    lg.innerHTML = entries.map(e => {
+      const dm = {}; (e.dmg || []).forEach(d => dm[d.id] = (dm[d.id] || 0) + d.n);
+      const dmText = PARTY.filter(p => dm[p.id]).map(p => p.name + " −" + dm[p.id]).join(", ");
+      if (e.restDay) return '<div class="log-row"><div class="log-date">' + niceDate(e.k) + '</div><div class="row"><span class="tag rest">Rest day</span> <span class="small muted">No fight, no damage, no XP.</span></div></div>';
+      const tag = e.wipe ? '<span class="tag loss">Party fell</span>' : e.win ? '<span class="tag win">Won</span>' : '<span class="tag loss">Lost</span>';
+      return '<div class="log-row"><div class="log-date">' + niceDate(e.k) + '</div><div class="stack" style="gap:3px"><div class="row">' + tag + (e.rest ? ' <span class="tag rest">Long rest</span>' : "") + (e.lab ? ' <span class="tag rest">Lab day</span>' : "") + ' <span>vs ' + esc(e.monster) + '</span></div>' +
+        '<div class="small muted mono">' + (e.xp >= 0 ? "+" : "") + e.xp + ' XP · ' + (e.gold >= 0 ? "+" : "") + e.gold + ' gold' + (dmText ? " · " + esc(dmText) : "") + '</div>' +
+        (e.notes.length ? '<div class="small muted">' + e.notes.map(esc).join(" · ") + '</div>' : "") + '</div></div>';
+    }).join("");
+  }
+
+  /* ================= lunch tab ================= */
+  const UNIT_WORDS = ["g", "kg", "ml", "l", "tbsp", "tsp", "can", "cans", "clove", "cloves", "bunch", "pack", "packs", "pcs"];
+  function fmtQty(q, unit) {
+    if (unit === "g" && q >= 1000) return (Math.round(q / 100) / 10) + " kg";
+    if (unit === "ml" && q >= 1000) return (Math.round(q / 100) / 10) + " l";
+    if (unit === "g" || unit === "ml") return Math.round(q / 10) * 10 + " " + unit;
+    const r = Math.round(q * 2) / 2;
+    if (unit === "pcs" || !unit) return String(r);
+    return r + " " + unit;
+  }
+  function roundCount(q, unit) { return (unit === "g" || unit === "ml" || unit === "tbsp" || unit === "tsp") ? q : Math.ceil(q - 0.01); }
+
+  function renderLunch() {
+    const today = todayKey(), week = prepWeekKey(today), plan = planOf(week);
+    const prepDay = addDays(week, -1);
+    const start = game.startDate || today;
+    $("prepEyebrow").textContent = "Quest · lunches for the week of " + niceDate(week);
+    $("prepTitle").textContent = prepDay === today ? "Sunday lunch prep: today" : "Sunday lunch prep on " + niceDate(prepDay);
+    const doneSteps = PREP_STEPS.filter(([id]) => plan.steps && plan.steps[id]).length;
+    const penalty = prepDay > start ? " If it isn't finished by Sunday midnight, Wren takes 8 damage." : " No penalty this first week.";
+    $("prepStakes").textContent = doneSteps + " of 5 done. Each step is 10 XP. Finish all five by Sunday midnight for a long rest (party fully healed) and 60 XP." + penalty;
+    const ps = $("prepSteps"); ps.innerHTML = "";
+    PREP_STEPS.forEach(([id, text]) => {
+      const done = !!(plan.steps && plan.steps[id]);
+      const b = document.createElement("button"); b.type = "button"; b.className = "ms" + (done ? " done" : ""); b.style.setProperty("--c", "var(--rogue)"); b.setAttribute("aria-pressed", String(done));
+      b.innerHTML = '<span class="check">' + CHECK + '</span><span class="ms-text"></span>'; b.querySelector(".ms-text").textContent = text;
+      if (done) b.querySelector(".check").style.background = "var(--rogue)";
+      b.querySelector(".check").querySelector("svg").style.opacity = done ? 1 : 0;
+      b.onclick = () => { const p = clonePlan(week); if (p.steps[id]) delete p.steps[id]; else p.steps[id] = today; savePlan(p); };
+      ps.appendChild(b);
+    });
+
+    // skip / undo skip
+    const sk = $("prepSkip"); sk.innerHTML = "";
+    const skipped = lastSkippedWeek(today);
+    if (skipped) {
+      const p = document.createElement("span"); p.className = "small muted"; p.textContent = "You skipped prep on " + niceDate(addDays(skipped, -1)) + ". This quest is for the following Sunday.";
+      sk.append(p, mkBtn("Undo skip", "btn-small", () => { if (!ready()) return; delete plans[skipped]; renderAll(); db.collection("plans").doc(skipped).delete().catch(writeErr); }));
+    } else if (!doneSteps) {
+      const key = "skip:" + week;
+      const free = !(prepDay > start);
+      sk.appendChild(mkBtn(confirmBox[key] ? "Confirm skip" : "Skip this Sunday", "btn-small" + (confirmBox[key] ? " danger" : ""), () => confirmThen(key, () => { if (!ready()) return; plans[week] = { week, recipes: [], got: {}, steps: {}, skipped: true }; renderAll(); queueSet("plans", week, { week, recipes: [], got: {}, steps: {}, skipped: true, updatedAt: new Date().toISOString() }); })));
+      const p = document.createElement("span"); p.className = "small muted"; p.textContent = free ? "Skipping is free this first week." : "Skipping counts as not done: Wren takes 8 damage that night.";
+      sk.appendChild(p);
+    }
+
+    // week menu
+    const total = plan.recipes.reduce((s, r) => s + (r.portions || 0), 0);
+    $("planCount").textContent = total + " of " + LUNCHES + " lunches";
+    const pl = $("planList"); pl.innerHTML = "";
+    if (!plan.recipes.length) pl.innerHTML = '<p class="small muted">Pick one or two recipes from the recipe book below. One recipe covers all five days; two give you some variety.</p>';
+    plan.recipes.forEach(pr => {
+      const rc = recipes.find(x => x.id === pr.id); if (!rc) return;
+      const row = document.createElement("div"); row.className = "mrow";
+      row.innerHTML = '<span class="grow"></span>';
+      row.querySelector(".grow").textContent = rc.name;
+      const st = document.createElement("span"); st.className = "stepper";
+      const minus = mkBtn("−", "", () => setPortions(week, pr.id, pr.portions - 1)); minus.setAttribute("aria-label", "Fewer portions");
+      const num = document.createElement("span"); num.className = "mono small"; num.textContent = pr.portions + " lunch" + (pr.portions === 1 ? "" : "es");
+      const plus = mkBtn("+", "", () => setPortions(week, pr.id, pr.portions + 1)); plus.setAttribute("aria-label", "More portions");
+      if (total >= LUNCHES) plus.disabled = true;
+      st.append(minus, num, plus);
+      const bb = mkBtn((plan.brewed || {})[pr.id] ? "Brewed ✓" : "Brew", "btn-small", () => openBrew(rc, "lunch", pr.portions, week));
+      row.append(st, bb); pl.appendChild(row);
+    });
+    if (total > 0 && total < LUNCHES) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = (LUNCHES - total) + " more lunch" + (LUNCHES - total === 1 ? "" : "es") + " to plan."; pl.appendChild(p); }
+
+    // dinners
+    const nights = (plan.dinners || []).reduce((s, d) => s + (d.nights || 0), 0);
+    $("dinnerCount").textContent = nights + " of " + DINNERS + " nights";
+    const dl = $("dinnerList"); dl.innerHTML = "";
+    if (!(plan.dinners || []).length) dl.innerHTML = '<p class="small muted">Pick quick dinners from the recipe book. Each one covers two nights. Leave a night or two open for leftovers or eating out.</p>';
+    (plan.dinners || []).forEach(pd => {
+      const rc = recipes.find(x => x.id === pd.id); if (!rc) return;
+      const row = document.createElement("div"); row.className = "mrow";
+      row.innerHTML = '<span class="grow"></span>'; row.querySelector(".grow").textContent = rc.name;
+      const st = document.createElement("span"); st.className = "stepper";
+      const minus = mkBtn("−", "", () => setNights(week, pd.id, pd.nights - 1)); minus.setAttribute("aria-label", "Fewer nights");
+      const num = document.createElement("span"); num.className = "mono small"; num.textContent = pd.nights + " night" + (pd.nights === 1 ? "" : "s");
+      const plus = mkBtn("+", "", () => setNights(week, pd.id, pd.nights + 1)); plus.setAttribute("aria-label", "More nights");
+      if (nights >= DINNERS) plus.disabled = true;
+      st.append(minus, num, plus); row.append(st, mkBtn("Brew", "btn-small", () => openBrew(rc, "dinner", pd.nights, week))); dl.appendChild(row);
+    });
+
+    // shopping list
+    const agg = {};
+    const addIngs = (rc, f) => (rc.ingredients || []).forEach(ing => {
+      const unit = ing.unit || "pcs"; const k = (ing.item || "").toLowerCase().trim() + "|" + unit;
+      if (!agg[k]) agg[k] = { key: k, item: ing.item, unit, qty: 0, aisle: ing.aisle || "Other", staple: !!ing.staple, fresh: false };
+      if (ing.fresh) agg[k].fresh = true;
+      agg[k].qty += (Number(ing.qty) || 0) * f;
+    });
+    plan.recipes.forEach(pr => { const rc = recipes.find(x => x.id === pr.id); if (rc) addIngs(rc, pr.portions / (rc.portions || LUNCHES)); });
+    (plan.dinners || []).forEach(pd => { const rc = recipes.find(x => x.id === pd.id); if (rc) addIngs(rc, pd.nights / (rc.portions || 2)); });
+    const items = Object.values(agg);
+    const extras = (plan.extras || []).map(x => ({ key: "x:" + x.id, item: x.text, unit: "", qty: 0, aisle: "Extras", extra: x.id }));
+    const buy = items.filter(i => !i.staple), staples = items.filter(i => i.staple);
+    const got = plan.got || {};
+    const gotN = buy.concat(extras).filter(i => got[i.key]).length;
+    $("shopCount").textContent = buy.length + extras.length ? gotN + " of " + (buy.length + extras.length) + " in the basket" : "";
+    const sl = $("shopList"); sl.innerHTML = "";
+    if (!buy.length && !extras.length) sl.innerHTML = '<p class="small muted">Your list fills in as soon as you pick lunches and dinners.</p>';
+    if (extras.length) {
+      const box = document.createElement("div"); box.className = "aisle";
+      box.innerHTML = '<span class="eyebrow">Extras</span>';
+      extras.forEach(i => box.appendChild(shopRow(i, got[i.key], week)));
+      sl.appendChild(box);
+    }
+    AISLES.forEach(a => {
+      const its = buy.filter(i => (AISLES.includes(i.aisle) ? i.aisle : "Other") === a).sort((x, y) => x.item.localeCompare(y.item));
+      if (!its.length) return;
+      const box = document.createElement("div"); box.className = "aisle";
+      box.innerHTML = '<span class="eyebrow">' + esc(a) + '</span>';
+      its.forEach(i => box.appendChild(shopRow(i, got[i.key], week)));
+      sl.appendChild(box);
+    });
+    if (buy.some(i => i.fresh)) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = "Items marked “buy Sat” won't keep a full week. Pick them up the day before you cook."; sl.appendChild(p); }
+    if (staples.length) {
+      const box = document.createElement("div"); box.className = "aisle";
+      box.innerHTML = '<span class="eyebrow">Check you have</span>';
+      staples.sort((x, y) => x.item.localeCompare(y.item)).forEach(i => box.appendChild(shopRow(i, got[i.key], week)));
+      sl.appendChild(box);
+    }
+
+    // recipe book
+    const rb = $("recipes"); rb.innerHTML = "";
+    if (!recipes.length) rb.innerHTML = '<p class="small muted">No recipes yet. Add one below.</p>';
+    const kindOf = rc => rc.kind === "dinner" ? "dinner" : "lunch";
+    const sorted = recipes.slice().sort((a, b) => (kindOf(a) === kindOf(b) ? 0 : kindOf(a) === "lunch" ? -1 : 1) || a.name.localeCompare(b.name));
+    let lastKind = null;
+    sorted.forEach(rc => {
+      const kind = kindOf(rc);
+      if (kind !== lastKind) { const hd = document.createElement("div"); hd.className = "eyebrow"; hd.style.marginTop = lastKind ? "8px" : "0"; hd.textContent = kind === "lunch" ? "Lunch prep (batch cook)" : "Quick dinners (about 2 nights each)"; rb.appendChild(hd); lastKind = kind; }
+      const inPlan = kind === "lunch" ? plan.recipes.some(p => p.id === rc.id) : (plan.dinners || []).some(p => p.id === rc.id);
+      const div = document.createElement("div"); div.className = "recipe";
+      div.innerHTML = '<div class="between"><h3></h3><span class="small muted mono">' + (rc.minutes || "?") + ' min · ' + (kind === "lunch" ? "makes " + (rc.portions || "?") : (rc.portions || 2) + " nights") + '</span></div>';
+      div.querySelector("h3").textContent = rc.name;
+      const acts = document.createElement("div"); acts.className = "row";
+      const add = mkBtn(inPlan ? "Remove from week" : "Add to week", "btn-small", () => kind === "lunch" ? (inPlan ? removeFromPlan(week, rc.id) : addToPlan(week, rc)) : (inPlan ? setNights(week, rc.id, 0) : addDinner(week, rc)));
+      if (!inPlan && kind === "lunch" && total >= LUNCHES) { add.disabled = true; add.title = "All five lunches are planned"; }
+      if (!inPlan && kind === "dinner" && nights >= DINNERS) { add.disabled = true; add.title = "All seven nights are planned"; }
+      const show = mkBtn(openRecipe[rc.id] ? "Hide recipe" : "Show recipe", "btn-small", () => { openRecipe[rc.id] = !openRecipe[rc.id]; renderLunch(); });
+      const key = "rc:" + rc.id;
+      const del = mkBtn(confirmBox[key] ? "Confirm delete" : "Delete", "btn-small" + (confirmBox[key] ? " danger" : ""), () => confirmThen(key, () => { if (kind === "lunch") removeFromPlan(week, rc.id, true); else setNights(week, rc.id, 0); delDoc("recipes", rc.id); }));
+      const brewBtn = mkBtn("Brew", "btn-small", () => openBrew(rc, kind, rc.portions, null));
+      const vid = document.createElement("a"); vid.className = "btn-small linkbtn"; vid.href = videoUrl(rc); vid.target = "_blank"; vid.rel = "noopener"; vid.textContent = "Video ↗";
+      acts.appendChild(vid);
+      const su = safeUrl(rc.url || ""); if (su) { const a = document.createElement("a"); a.className = "btn-small linkbtn"; a.href = su; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Source ↗"; acts.appendChild(a); }
+      acts.append(add, brewBtn, show, del); div.appendChild(acts);
+      if (openRecipe[rc.id]) {
+        const det = document.createElement("div"); det.className = "stack"; det.style.gap = "8px";
+        det.innerHTML = '<div><span class="eyebrow">Ingredients</span><ul></ul></div>' + ((rc.steps || []).length ? '<div><span class="eyebrow">Steps</span><ol></ol></div>' : "") + (rc.notes ? '<p class="small muted"></p>' : "");
+        const ul = det.querySelector("ul");
+        (rc.ingredients || []).forEach(i => { const li = document.createElement("li"); li.textContent = fmtQty(Number(i.qty) || 0, i.unit || "pcs") + " " + i.item + (i.staple ? " (staple)" : ""); ul.appendChild(li); });
+        const ol = det.querySelector("ol"); if (ol) (rc.steps || []).forEach(s => { const li = document.createElement("li"); li.textContent = s; ol.appendChild(li); });
+        const np = det.querySelector("p"); if (np) np.textContent = rc.notes;
+        div.appendChild(det);
+      }
+      rb.appendChild(div);
+    });
+  }
+  function shopRow(i, isGot, week) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "shop-item" + (isGot ? " done" : ""); b.style.setProperty("--c", "var(--lamp)"); b.setAttribute("aria-pressed", String(!!isGot));
+    b.innerHTML = '<span class="check" style="' + (isGot ? "background:var(--lamp)" : "") + '">' + CHECK.replace('opacity', '') + '</span><span class="si-name"></span><span class="si-qty"></span>';
+    b.querySelector("svg").style.opacity = isGot ? 1 : 0;
+    b.querySelector(".si-name").textContent = i.item;
+    if (i.fresh) { const f = document.createElement("span"); f.className = "fresh"; f.textContent = "buy Sat"; b.querySelector(".si-name").appendChild(f); }
+    b.querySelector(".si-qty").textContent = i.staple || i.extra ? "" : fmtQty(roundCount(i.qty, i.unit), i.unit);
+    b.onclick = () => { const p = clonePlan(week); if (p.got[i.key]) delete p.got[i.key]; else p.got[i.key] = true; savePlan(p); };
+    if (i.extra) {
+      const wrap = document.createElement("div"); wrap.style.cssText = "display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center";
+      const x = mkBtn("×", "btn-small", () => { const p = clonePlan(week); p.extras = p.extras.filter(e => e.id !== i.extra); delete p.got[i.key]; savePlan(p); });
+      x.setAttribute("aria-label", "Remove " + i.item);
+      wrap.append(b, x); return wrap;
+    }
+    return b;
+  }
+  function clonePlan(week) { const p = planOf(week); return { week, recipes: (p.recipes || []).map(r => ({ id: r.id, portions: r.portions })), dinners: (p.dinners || []).map(d => ({ id: d.id, nights: d.nights })), extras: (p.extras || []).map(e => ({ id: e.id, text: e.text })), brewed: Object.assign({}, p.brewed || {}), got: Object.assign({}, p.got || {}), steps: Object.assign({}, p.steps || {}) }; }
+  function addDinner(week, rc) {
+    const p = clonePlan(week); const n = p.dinners.reduce((s, d) => s + d.nights, 0);
+    if (n >= DINNERS) return; p.dinners.push({ id: rc.id, nights: Math.min(rc.portions || 2, DINNERS - n) }); savePlan(p);
+  }
+  function setNights(week, id, n) {
+    const p = clonePlan(week); const d = p.dinners.find(x => x.id === id); if (!d) return;
+    if (n <= 0) p.dinners = p.dinners.filter(x => x.id !== id);
+    else { const others = p.dinners.filter(x => x.id !== id).reduce((s, x) => s + x.nights, 0); d.nights = Math.min(n, DINNERS - others); }
+    savePlan(p);
+  }
+  function addToPlan(week, rc) {
+    const p = clonePlan(week); const total = p.recipes.reduce((s, r) => s + r.portions, 0);
+    if (total >= LUNCHES) return; p.recipes.push({ id: rc.id, portions: LUNCHES - total }); savePlan(p);
+  }
+  function removeFromPlan(week, id, quiet) { const p = clonePlan(week); if (!p.recipes.some(r => r.id === id)) return; p.recipes = p.recipes.filter(r => r.id !== id); savePlan(p); }
+  function setPortions(week, id, n) {
+    const p = clonePlan(week); const r = p.recipes.find(x => x.id === id); if (!r) return;
+    if (n <= 0) { p.recipes = p.recipes.filter(x => x.id !== id); }
+    else { const others = p.recipes.filter(x => x.id !== id).reduce((s, x) => s + x.portions, 0); r.portions = Math.min(n, LUNCHES - others); }
+    savePlan(p);
+  }
+
+  /* ================= recipe links ================= */
+  function videoUrl(rc) { return "https://www.youtube.com/results?search_query=" + encodeURIComponent(rc.name + " receita"); }
+  function safeUrl(u) { try { const x = new URL(u); return (x.protocol === "https:" || x.protocol === "http:") ? x.href : ""; } catch (e) { return ""; } }
+  function recipeChips(list) {
+    // list: [{rc, kind, count, week}]
+    const wrap = document.createElement("div"); wrap.className = "rchips";
+    list.forEach(o => { const b = mkBtn(o.rc.name, "rchip", () => openBrew(o.rc, o.kind, o.count, o.week)); b.title = "Open the recipe step by step"; wrap.appendChild(b); });
+    return wrap;
+  }
+  function plannedDinners(k) {
+    const weeks = [prepWeekKey(k), addDays(prepWeekKey(k), -7)]; const seen = {}, out = [];
+    weeks.forEach(w => (planOf(w).dinners || []).forEach(d => { const rc = recipes.find(x => x.id === d.id); if (rc && !seen[rc.id]) { seen[rc.id] = 1; out.push({ rc, kind: "dinner", count: d.nights, week: w }); } }));
+    return out;
+  }
+
+  /* ================= brewing (guided cooking) ================= */
+  const EPITHETS = ["Draught of Hearty Resolve", "Elixir of the Long Shift", "Tonic of Iron Will", "Philter of Warm Bellies", "Brew of the Lab Rat's Feast", "Stew of Steady Hands", "Potion of Second Wind", "Decoction of Quiet Evenings"];
+  let brew = null, brewTick = null, wakeLock = null;
+  function stepMinutes(s) { const m = String(s).match(/(\d+)\s*(?:[–-]\s*(\d+))?\s*min/); return m ? Number(m[2] || m[1]) : 0; }
+  function openBrew(rc, kind, count, week) {
+    brew = { rid: rc.id, kind, count: Math.max(1, count || rc.portions || 1), week, idx: -1, got: {}, total: "", carb: "", tare: "", filled: {}, timer: null };
+    $("brew").hidden = false; document.body.style.overflow = "hidden";
+    try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then(l => { wakeLock = l; }).catch(() => {}); } catch (e) {}
+    if (!brewTick) brewTick = setInterval(renderBrewTimer, 1000);
+    renderBrew();
+  }
+  function closeBrew() {
+    brew = null; $("brew").hidden = true; document.body.style.overflow = "";
+    try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null;
+    if (brewTick) { clearInterval(brewTick); brewTick = null; }
+  }
+  function beep() {
+    try { const A = window.AudioContext || window.webkitAudioContext; const ctx = new A(); [0, 0.35, 0.7].forEach(t => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.2, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.3); }); } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (e) {}
+  }
+  function renderBrewTimer() {
+    const el = $("brewTimer");
+    if (!brew || !brew.timer) { el.hidden = true; return; }
+    const left = Math.max(0, Math.round((brew.timer.endAt - Date.now()) / 1000));
+    el.hidden = false; el.classList.toggle("done", left === 0);
+    if (left === 0 && !brew.timer.rang) { brew.timer.rang = true; beep(); }
+    el.innerHTML = '<span>' + (left === 0 ? "Time's up: " : "") + esc(brew.timer.label) + '</span><b>' + pad(Math.floor(left / 60)) + ":" + pad(left % 60) + '</b>';
+    const stop = mkBtn(left === 0 ? "Done" : "Stop", "btn-small", () => { brew.timer = null; renderBrewTimer(); }); el.appendChild(stop);
+  }
+  function jarSvg(full) {
+    return '<svg viewBox="0 0 54 64" aria-hidden="true"><rect x="16" y="3" width="22" height="7" rx="2" fill="var(--steel)"/><path d="M14 12h26v4c6 3 8 9 8 16v22a7 7 0 0 1-7 7H13a7 7 0 0 1-7-7V32c0-7 2-13 8-16z" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/>' + (full ? '<path d="M8 34h38v20a5 5 0 0 1-5 5H13a5 5 0 0 1-5-5z" fill="var(--hobby)" opacity=".85"/><path d="M14 40q4-3 8 0M28 44q4-3 8 0" stroke="var(--surface)" stroke-width="2" fill="none" stroke-linecap="round"/>' : "") + '</svg>';
+  }
+  function renderBrew() {
+    if (!brew) return;
+    const rc = recipes.find(x => x.id === brew.rid); if (!rc) { closeBrew(); return; }
+    const steps = rc.steps || [], n = steps.length, f = brew.count / (rc.portions || brew.count);
+    const word = brew.kind === "dinner" ? "night" : "box";
+    $("brewEyebrow").textContent = "Alchemy · " + EPITHETS[hash(rc.id) % EPITHETS.length];
+    $("brewTitle").textContent = rc.name;
+    $("brewSub").textContent = brew.count + " " + word + (brew.count === 1 ? "" : (word === "box" ? "es" : "s")) + " · about " + (rc.minutes || "?") + " min · ";
+    const va = document.createElement("a"); va.href = safeUrl(rc.url || "") || videoUrl(rc); va.target = "_blank"; va.rel = "noopener"; va.textContent = safeUrl(rc.url || "") ? "source ↗" : "watch a video ↗"; $("brewSub").appendChild(va);
+    // progress
+    const total = n + 2; const cur = brew.idx + 1;
+    $("brewDots").innerHTML = Array.from({ length: total }, (_, i) => '<span class="' + (i < cur ? "on" : i === cur ? "cur" : "") + '"></span>').join("");
+    const body = $("brewBody"); body.innerHTML = "";
+    const back = $("brewBack"), next = $("brewNext");
+    back.disabled = brew.idx === -1;
+    if (brew.idx === -1) {
+      // reagents
+      body.innerHTML = '<h3>Gather your reagents</h3><p class="small muted">Weigh each one on the scale and tick it off. Amounts are already scaled to ' + brew.count + ' ' + word + (brew.count === 1 ? "" : (word === "box" ? "es" : "s")) + '.</p>';
+      const list = document.createElement("div"); list.className = "stack"; list.style.gap = "6px";
+      (rc.ingredients || []).forEach((ing, i) => {
+        const done = !!brew.got[i];
+        const b = document.createElement("button"); b.type = "button"; b.className = "reagent" + (done ? " done" : ""); b.style.setProperty("--c", "var(--hobby)"); b.setAttribute("aria-pressed", String(done));
+        b.innerHTML = '<span class="check" style="' + (done ? "background:var(--hobby)" : "") + '">' + CHECK + '</span><span class="r-name"></span><span class="r-qty"></span>';
+        b.querySelector("svg").style.opacity = done ? 1 : 0;
+        b.querySelector(".r-name").textContent = ing.item + (ing.staple ? " (from the cupboard)" : "");
+        const q = (Number(ing.qty) || 0) * f; const u = ing.unit || "pcs";
+        b.querySelector(".r-qty").textContent = fmtQty(u === "g" || u === "ml" ? q : Math.round(q * 4) / 4, u);
+        b.onclick = () => { brew.got[i] = !brew.got[i]; renderBrew(); };
+        list.appendChild(b);
+      });
+      body.appendChild(list);
+      const left = (rc.ingredients || []).filter((_, i) => !brew.got[i]).length;
+      next.textContent = left ? "Begin brewing (" + left + " not ticked)" : "Begin brewing";
+    } else if (brew.idx < n) {
+      const s = steps[brew.idx];
+      body.innerHTML = '<div class="brew-stepno">' + (brew.idx + 1) + '<span class="muted" style="font-size:1rem"> / ' + n + '</span></div><p class="brew-step"></p>';
+      body.querySelector(".brew-step").textContent = s;
+      const mins = stepMinutes(s);
+      if (mins) {
+        const tb = mkBtn("Start a " + mins + " min timer", "btn-quiet", () => { brew.timer = { endAt: Date.now() + mins * 60000, label: "Step " + (brew.idx + 1), rang: false }; renderBrewTimer(); });
+        body.appendChild(tb);
+      }
+      if (rc.notes && brew.idx === n - 1) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = rc.notes; body.appendChild(p); }
+      next.textContent = brew.idx === n - 1 ? "To the bottling" : "Next step";
+    } else {
+      // bottling
+      const k = brew.count;
+      body.innerHTML = '<h3>Bottling</h3><p class="small muted">Weigh the empty pot before you start next time, or tip everything into a big bowl you have weighed. Then weigh it full and the potion splits itself.</p>';
+      const form = document.createElement("div"); form.className = "stack";
+      form.innerHTML = '<div class="weigh"><label class="f" for="bwTare">Empty pot or bowl (g)<input id="bwTare" type="number" inputmode="numeric" min="0" placeholder="e.g. 1450"></label><label class="f" for="bwFull">Full (g)<input id="bwFull" type="number" inputmode="numeric" min="0" placeholder="e.g. 3900"></label></div>' +
+        '<label class="f" for="bwCarb">Cooked rice, bulgur or pasta, if kept separate (g)<input id="bwCarb" type="number" inputmode="numeric" min="0" placeholder="optional"></label><div id="bwOut" class="stack" style="gap:4px"></div>';
+      body.appendChild(form);
+      $("bwTare").value = brew.tare; $("bwFull").value = brew.total; $("bwCarb").value = brew.carb;
+      const out = () => {
+        const tare = Number($("bwTare").value) || 0, full = Number($("bwFull").value) || 0, carb = Number($("bwCarb").value) || 0;
+        brew.tare = $("bwTare").value; brew.total = $("bwFull").value; brew.carb = $("bwCarb").value;
+        const net = full - tare;
+        let h = "";
+        if (full && net > 0) h += '<div class="result">' + Math.round(net / k) + ' g per ' + word + '</div><div class="small muted">' + Math.round(net) + ' g of food ÷ ' + k + '</div>';
+        else h += '<div class="small muted">Enter the weights to get the grams for each ' + word + '.</div>';
+        if (carb > 0) h += '<div class="result" style="font-size:1.3rem;color:var(--lamp)">+ ' + Math.round(carb / k) + ' g of rice or pasta each</div>';
+        $("bwOut").innerHTML = h;
+      };
+      ["bwTare", "bwFull", "bwCarb"].forEach(id => $(id).addEventListener("input", out)); out();
+      const jl = document.createElement("div"); jl.className = "stack"; jl.style.gap = "6px";
+      jl.innerHTML = '<span class="eyebrow">Tap each container as you fill it</span>';
+      const jars = document.createElement("div"); jars.className = "jars";
+      for (let i = 0; i < k; i++) {
+        const j = document.createElement("button"); j.type = "button"; j.className = "jar"; j.setAttribute("aria-pressed", String(!!brew.filled[i])); j.setAttribute("aria-label", (word === "box" ? "Container " : "Night ") + (i + 1));
+        j.innerHTML = jarSvg(brew.filled[i]); j.onclick = () => { brew.filled[i] = !brew.filled[i]; renderBrew(); };
+        jars.appendChild(j);
+      }
+      jl.appendChild(jars);
+      if (word === "box") { const p = document.createElement("p"); p.className = "small muted"; p.textContent = "Let it cool before closing the lids. Freeze the Thursday and Friday boxes; glass goes from freezer to fridge the night before, never straight into a hot oven."; jl.appendChild(p); }
+      body.appendChild(jl);
+      const filled = Object.values(brew.filled).filter(Boolean).length;
+      next.textContent = filled >= k ? "Seal the batch" : "Seal the batch (" + filled + "/" + k + " filled)";
+    }
+  }
+  $("brewBack").onclick = () => { if (brew && brew.idx > -1) { brew.idx--; renderBrew(); } };
+  $("brewNext").onclick = () => {
+    if (!brew) return;
+    const rc = recipes.find(x => x.id === brew.rid); const n = (rc && rc.steps || []).length;
+    if (brew.idx < n) { brew.idx++; renderBrew(); $("brew").scrollTop = 0; return; }
+    // seal: record the brew; when every planned lunch is brewed, tick Cook and Portion
+    if (brew.kind === "lunch" && brew.week && ready()) {
+      const p = clonePlan(brew.week); p.brewed = Object.assign({}, planOf(brew.week).brewed || {}); p.brewed[brew.rid] = todayKey();
+      if (p.recipes.length && p.recipes.every(r => p.brewed[r.id])) { const t = todayKey(); if (!p.steps.cook) p.steps.cook = t; if (!p.steps.portion) p.steps.portion = t; }
+      savePlan(p);
+    }
+    closeBrew();
+  };
+  $("brewClose").onclick = closeBrew;
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && brew) closeBrew(); });
+
+  /* ================= quests tab ================= */
+  function renderQuests() {
+    const today = todayKey();
+    const qs = $("quests"); qs.innerHTML = "";
+    const active = quests.filter(q => !q.archived).sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+    if (!active.length) qs.innerHTML = '<div class="notice">No quests yet. Got something big hanging over you? Break it into small steps below.</div>';
+    active.forEach(q => {
+      const ms = q.milestones || []; const n = ms.filter(m => m.doneAt).length; const complete = ms.length && n === ms.length;
+      const box = document.createElement("div"); box.className = "panel quest";
+      const overdue = q.due && q.due < today && !complete;
+      box.innerHTML = '<div class="between"><h2></h2><span class="mono small muted">' + n + ' / ' + ms.length + '</span></div>' + bar(ms.length ? n / ms.length * 100 : 0, "var(--rogue)") +
+        (q.due ? '<span class="small" style="color:' + (overdue ? "var(--hurt)" : "var(--muted)") + '">' + (overdue ? "Overdue since " : "Due ") + niceDate(q.due) + '</span>' : "");
+      box.querySelector("h2").textContent = q.title;
+      const list = document.createElement("div"); list.className = "milestones";
+      ms.forEach(m => {
+        const b = document.createElement("button"); b.type = "button"; b.className = "ms" + (m.doneAt ? " done" : ""); b.style.setProperty("--c", "var(--rogue)"); b.setAttribute("aria-pressed", String(!!m.doneAt));
+        b.innerHTML = '<span class="check" style="' + (m.doneAt ? "background:var(--rogue)" : "") + '">' + CHECK + '</span><span class="ms-text"></span>';
+        b.querySelector("svg").style.opacity = m.doneAt ? 1 : 0;
+        b.querySelector(".ms-text").textContent = m.text;
+        b.onclick = () => toggleMilestone(q, m.id);
+        list.appendChild(b);
+      });
+      box.appendChild(list);
+      const acts = document.createElement("div"); acts.className = "row";
+      if (complete) { const p = document.createElement("span"); p.className = "small"; p.style.color = "var(--hp)"; p.textContent = "Quest complete. +40 XP at midnight."; acts.appendChild(p); }
+      const key = "q:" + q.id;
+      acts.appendChild(mkBtn(confirmBox[key] ? "Confirm close" : (complete ? "Close quest" : "Abandon"), "btn-small" + (confirmBox[key] ? " danger" : ""), () => confirmThen(key, () => saveQuest(Object.assign({}, q, { archived: true })))));
+      box.appendChild(acts);
+      qs.appendChild(box);
+    });
+  }
+  function toggleMilestone(q, mid) {
+    const nq = Object.assign({}, q, { milestones: (q.milestones || []).map(m => m.id === mid ? Object.assign({}, m, { doneAt: m.doneAt ? null : todayKey() }) : Object.assign({}, m)) });
+    saveQuest(nq);
+  }
+
+  /* ================= writes ================= */
+  function showNotice(msg) { const n = $("notice"); n.textContent = msg; n.hidden = false; }
+  function writeErr(e) {
+    if (e && e.code === "invalid_argument") { canWrite = false; showNotice("This view can't save changes."); }
+    else if (e && e.code === "quota_exceeded") showNotice("Storage is full, so this change wasn't saved.");
+    else showNotice("Couldn't save that change. Check your connection and try again.");
+  }
+  function ready() { if (!db || !canWrite) { showNotice("Changes can't be saved right now. Check Settings."); return false; } return true; }
+  function queueSet(col, id, body) {
+    const path = col + "/" + id;
+    chains[path] = (chains[path] || Promise.resolve()).then(() => db.collection(col).doc(id).set(body)).catch(writeErr);
+    return chains[path];
+  }
+  function delDoc(col, id) { if (!ready()) return; db.collection(col).doc(id).delete().catch(writeErr); }
+  function toggleDay(hid, k) {
+    if (!ready()) return;
+    const cur = Object.assign({}, (days[k] && days[k].done) || {});
+    if (cur[hid]) delete cur[hid]; else { cur[hid] = true; if (k === todayKey()) lastHit = Date.now(); }
+    skip = 0; writeDay(k, { done: cur });
+    if (lastHit && Date.now() - lastHit < 100) setTimeout(() => { if (tab === "tonight") renderTonight(); }, 1700);
+  }
+  function writeDay(k, patch) {
+    if (!ready()) return;
+    const c = days[k] || {};
+    const next = { date: k, done: Object.assign({}, c.done || {}), game: Number(c.game) || 0, rest: !!c.rest, lab: !!c.lab };
+    Object.assign(next, patch);
+    days[k] = next; renderAll();
+    queueSet("days", k, Object.assign({}, next, { updatedAt: new Date().toISOString() }));
+  }
+  const REST_PER_MONTH = 2;
+  function restLeft(k) { const m = k.slice(0, 7); return REST_PER_MONTH - Object.keys(days).filter(d => d.slice(0, 7) === m && days[d].rest).length; }
+  function savePlan(p) { if (!ready()) return; plans[p.week] = p; renderAll(); queueSet("plans", p.week, Object.assign({}, p, { updatedAt: new Date().toISOString() })); }
+  function saveQuest(q) {
+    if (!ready()) return;
+    const i = quests.findIndex(x => x.id === q.id); if (i >= 0) quests[i] = q; else quests.push(q);
+    renderAll();
+    const body = Object.assign({}, q); delete body.id;
+    queueSet("quests", q.id, body);
+  }
+  async function moveHabit(h, dir) {
+    if (!ready()) return;
+    const list = visibleHabits(); const i = list.findIndex(x => x.id === h.id), j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    const a = list[i], b = list[j];
+    try { await db.collection("habits").doc(a.id).update({ order: b.order || j }); await db.collection("habits").doc(b.id).update({ order: (a.order || i) === (b.order || j) ? (a.order || i) + 1 : (a.order || i) }); } catch (e) { writeErr(e); }
+  }
+  async function archiveHabit(h) { if (!ready()) return; try { await db.collection("habits").doc(h.id).update({ archivedAt: todayKey() }); $("hStatus").textContent = "Removed “" + h.name + "”. Past nights keep their scores."; } catch (e) { writeErr(e); } }
+  async function buyReward(r) {
+    if (!ready()) return;
+    if (G.gold < r.cost) return;
+    try { await db.collection("purchases").add({ rewardId: r.id, name: r.name, cost: r.cost, date: todayKey(), at: new Date().toISOString() }); $("rStatus").textContent = "Claimed “" + r.name + "”. Enjoy it."; } catch (e) { writeErr(e); }
+  }
+
+  $("addHabit").addEventListener("submit", async ev => {
+    ev.preventDefault(); if (!ready()) return;
+    const name = $("hName").value.trim(); if (!name) return;
+    const maxOrder = habitsAll.reduce((m, h) => Math.max(m, h.order || 0), 0);
+    const tv = $("hTarget").value;
+    const body = { name, group: $("hGroup").value, order: maxOrder + 1, createdAt: todayKey() };
+    if (tv === "days") {
+      const ds = Array.from(document.querySelectorAll("#hDays input:checked")).map(i => Number(i.value));
+      if (!ds.length) { $("hStatus").textContent = "Pick at least one day."; return; }
+      body.days = ds; body.perWeek = ds.length;
+    } else body.perWeek = Number(tv);
+    try { await db.collection("habits").add(body); $("hName").value = ""; $("hStatus").textContent = "Added “" + name + "”."; } catch (e) { writeErr(e); }
+  });
+  WEEK_ORDER.forEach(d => { const l = document.createElement("label"); l.innerHTML = '<input type="checkbox" id="hDay' + d + '" value="' + d + '">' + DAYNAMES[d]; $("hDays").appendChild(l); });
+  $("hTarget").addEventListener("change", () => { $("hDaysBox").hidden = $("hTarget").value !== "days"; });
+  function renderRenameFields() {
+    $("renameFields").innerHTML = "";
+    PARTY.forEach(p => {
+      const l = document.createElement("label"); l.className = "f"; l.setAttribute("for", "nm-" + p.id);
+      l.textContent = p.cls + " · guards " + p.guards;
+      const i = document.createElement("input"); i.id = "nm-" + p.id; i.maxLength = 30; i.value = p.name;
+      l.appendChild(i); $("renameFields").appendChild(l);
+    });
+  }
+  renderRenameFields();
+  $("renameForm").addEventListener("submit", ev => {
+    ev.preventDefault(); if (!ready()) return;
+    const names = {}; PARTY.forEach(p => { const v = $("nm-" + p.id).value.trim(); if (v) names[p.id] = v.slice(0, 30); });
+    game = Object.assign({}, game, { names }); applyNames(); renderAll();
+    const body = Object.assign({}, game); queueSet("game", "state", body).then(() => { $("nStatus").textContent = "Names saved."; });
+  });
+  $("addReward").addEventListener("submit", async ev => {
+    ev.preventDefault(); if (!ready()) return;
+    const name = $("rName").value.trim(), cost = Math.round(Number($("rCost").value));
+    if (!name || !(cost > 0)) return;
+    try { await db.collection("rewards").add({ name, cost }); $("rName").value = ""; $("rStatus").textContent = "Added “" + name + "”."; } catch (e) { writeErr(e); }
+  });
+  $("addQuest").addEventListener("submit", ev => {
+    ev.preventDefault(); if (!ready()) return;
+    const title = $("qTitle").value.trim();
+    const steps = $("qSteps").value.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 30);
+    if (!title || !steps.length) { $("qStatus").textContent = "Add a title and at least one milestone."; return; }
+    const id = "q" + Date.now().toString(36);
+    saveQuest({ id, title, due: $("qDue").value || null, createdAt: new Date().toISOString(), archived: false, milestones: steps.map((t, i) => ({ id: "m" + i, text: t, doneAt: null })) });
+    $("qTitle").value = ""; $("qSteps").value = ""; $("qDue").value = ""; $("qStatus").textContent = "Quest started: " + title + ".";
+  });
+  $("addExtra").addEventListener("submit", ev => {
+    ev.preventDefault(); if (!ready()) return;
+    const text = $("exText").value.trim(); if (!text) return;
+    const week = prepWeekKey(todayKey()); const p = clonePlan(week);
+    p.extras.push({ id: Date.now().toString(36), text: text.slice(0, 60) }); savePlan(p); $("exText").value = "";
+  });
+  function parseIngredient(line) {
+    let s = line.trim(); if (!s) return null;
+    let aisle = "Other", staple = false, fresh = false;
+    if (/,\s*fresh\s*$/i.test(s)) { fresh = true; s = s.replace(/,\s*fresh\s*$/i, ""); }
+    const comma = s.lastIndexOf(",");
+    if (comma > 0) {
+      const tail = s.slice(comma + 1).trim().toLowerCase();
+      if (tail === "staple") { staple = true; aisle = "Pantry"; s = s.slice(0, comma).trim(); }
+      else { const a = AISLES.find(x => x.toLowerCase() === tail || x.toLowerCase().split(" ")[0] === tail.split(" ")[0]); if (a) { aisle = a; s = s.slice(0, comma).trim(); } }
+    }
+    const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
+    let qty = 1, rest = s;
+    if (m) { qty = Number(m[1].replace(",", ".")); rest = m[2]; }
+    let unit = "pcs";
+    const w = rest.split(/\s+/);
+    if (w.length > 1 && UNIT_WORDS.includes(w[0].toLowerCase())) { unit = w[0].toLowerCase(); rest = w.slice(1).join(" "); }
+    if (unit === "cans") unit = "can"; if (unit === "cloves") unit = "clove"; if (unit === "packs") unit = "pack";
+    if (unit === "kg") { unit = "g"; qty *= 1000; } if (unit === "l") { unit = "ml"; qty *= 1000; }
+    return { qty, unit, item: rest.trim() || s, aisle, staple, fresh };
+  }
+  $("addRecipe").addEventListener("submit", async ev => {
+    ev.preventDefault(); if (!ready()) return;
+    const name = $("rcName").value.trim();
+    const ingredients = $("rcIngredients").value.split("\n").map(parseIngredient).filter(Boolean);
+    const steps = $("rcSteps").value.split("\n").map(s => s.trim()).filter(Boolean);
+    if (!name || !ingredients.length) { $("rcStatus").textContent = "Add a name and at least one ingredient."; return; }
+    try {
+      await db.collection("recipes").add({ name, kind: $("rcKind").value, portions: Number($("rcPortions").value) || 5, minutes: Number($("rcMinutes").value) || 45, ingredients, steps, url: safeUrl($("rcUrl").value.trim()), createdAt: new Date().toISOString() });
+      ["rcName", "rcIngredients", "rcSteps", "rcUrl"].forEach(id => $(id).value = ""); $("rcStatus").textContent = "Added “" + name + "” to the recipe book.";
+    } catch (e) { writeErr(e); }
+  });
+
+  /* ================= nav ================= */
+  const TABS = ["tonight", "party", "lunch", "quests", "dm"];
+  function setTab(t, fromHash) {
+    if (!TABS.includes(t)) t = "tonight";
+    tab = t;
+    TABS.forEach(x => { $("tab-" + x).setAttribute("aria-selected", String(x === t)); $("view-" + x).hidden = x !== t; });
+    if (!fromHash) { try { history.replaceState(null, "", "#" + t); } catch (e) {} }
+    renderAll();
+    if (t === "dm" && window.DM) window.DM.render();
+  }
+  TABS.forEach(x => $("tab-" + x).addEventListener("click", () => setTab(x)));
+  window.addEventListener("hashchange", () => setTab(location.hash.slice(1), true));
+  $("prev").onclick = () => { if (viewDate > (game.startDate || todayKey())) { viewDate = addDays(viewDate, -1); skip = 0; renderTonight(); } };
+  $("next").onclick = () => { if (viewDate < addDays(todayKey(), MAX_AHEAD)) { viewDate = addDays(viewDate, 1); skip = 0; renderTonight(); } };
+  $("todayBtn").onclick = () => { viewDate = todayKey(); skip = 0; renderTonight(); };
+
+  setTab(location.hash.slice(1) || "tonight", true);
+  let lastDay = todayKey();
+  setInterval(() => { if (todayKey() !== lastDay) { if (viewDate === lastDay) viewDate = todayKey(); lastDay = todayKey(); renderAll(); } else if (tab === "tonight") renderTimeline(); }, 60000);
+
+  /* ================= hooks for the Dungeon Master and settings ================= */
+  function dmContext() {
+    const today = todayKey(), now = new Date();
+    const lines = [];
+    lines.push("Now: " + niceDate(today) + " " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + (isWeekend(today) ? " (weekend)" : "") + (isLab(today) ? " (LAB DAY: he is working; weekend chores excused)" : "") + (days[today] && days[today].rest ? " (REST DAY)" : ""));
+    lines.push("Game started: " + (game.startDate || today) + ". Party level " + G.level + ", " + G.gold + " gold, " + G.xp + " XP.");
+    lines.push("Party: " + PARTY.map(p => { const m = G.members[p.id]; return p.name + " (" + p.cls + ", guards " + p.guards + ", Lv " + m.lv + ", " + (m.ko ? "DOWN" : m.hp + "/" + m.max + " HP") + ")"; }).join("; "));
+    const r = evaluateDay(today, G.level);
+    lines.push("Tonight's monster: " + r.monster + " (" + r.lore + "), " + Math.max(0, r.foeHp - r.dealt) + "/" + r.foeHp + " HP left" + (r.win ? ", already defeated" : "") + ". Each task done hits it for 10.");
+    const due = habitsOn(today).filter(h => dueOn(h, today));
+    const fmt = h => displayName(h, today) + " [" + GROUPS[h.group].label + (mustDo(h, today) ? ", must-do" : ", optional") + "]";
+    lines.push("Done today: " + (due.filter(h => isDone(h.id, today)).map(fmt).join("; ") || "nothing yet"));
+    lines.push("Still open today: " + (due.filter(h => !isDone(h.id, today)).map(fmt).join("; ") || "nothing"));
+    const recent = (G.log || []).slice(-7).map(e => niceDate(e.k) + ": " + (e.restDay ? "rest day" : (e.win ? "won" : "lost") + " vs " + e.monster + (e.notes.length ? " (" + e.notes.join("; ") + ")" : ""))).join(" | ");
+    if (recent) lines.push("Recent nights: " + recent);
+    const pw = prepWeekKey(today), pp = planOf(pw);
+    const lunchNames = (pp.recipes || []).map(x => (recipes.find(r => r.id === x.id) || {}).name).filter(Boolean);
+    const dinNames = (pp.dinners || []).map(x => (recipes.find(r => r.id === x.id) || {}).name).filter(Boolean);
+    lines.push("Next lunch prep: " + niceDate(addDays(pw, -1)) + (pp.skipped ? " (skipped)" : "") + ". Lunches: " + (lunchNames.join(", ") || "none picked") + ". Dinners: " + (dinNames.join(", ") || "none picked") + ". Prep steps done: " + Object.keys(pp.steps || {}).join(", ") + ".");
+    const aq = quests.filter(q => !q.archived).map(q => q.title + " (" + (q.milestones || []).filter(m => m.doneAt).length + "/" + (q.milestones || []).length + ")");
+    if (aq.length) lines.push("Active quests: " + aq.join("; "));
+    return lines.join("\n");
+  }
+  window.EAH = {
+    context: dmContext,
+    db: () => db,
+    party: () => PARTY,
+    today: todayKey,
+    addQuest: (title, steps) => saveQuest({ id: "q" + Date.now().toString(36), title, due: null, createdAt: new Date().toISOString(), archived: false, milestones: steps.map((t, i) => ({ id: "m" + i, text: t, doneAt: null })) }),
+    notice: showNotice
+  };
+
+  /* ================= data ================= */
+  (async () => {
+    db = await window.Store.ready();
+    if (!db) { showNotice("Your data couldn't load. Check Settings."); return; }
+
+    const err = what => () => showNotice(what + " stopped updating. Reload the page.");
+    db.doc("game/state").onSnapshot(s => { game = s.exists ? Object.assign({ startDate: null }, s.data()) : { startDate: null }; applyNames(); renderRenameFields(); renderAll(); }, err("Game data"));
+    db.collection("habits").onSnapshot(s => {
+      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null }; });
+      renderAll();
+    }, err("Habits"));
+    db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); renderAll(); }, err("Check-ins"));
+    db.collection("recipes").onSnapshot(s => { recipes = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { name: String(d.data().name || "Untitled") })); renderAll(); }, err("Recipes"));
+    db.collection("plans").onSnapshot(s => { const p = {}; s.docs.forEach(d => { const x = d.data(); p[d.id] = { week: d.id, recipes: Array.isArray(x.recipes) ? x.recipes : [], dinners: Array.isArray(x.dinners) ? x.dinners : [], extras: Array.isArray(x.extras) ? x.extras : [], brewed: x.brewed || {}, got: x.got || {}, steps: x.steps || {}, skipped: !!x.skipped }; }); plans = p; renderAll(); }, err("Lunch plans"));
+    db.collection("quests").onSnapshot(s => { quests = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { title: String(d.data().title || "Quest") })); renderAll(); }, err("Quests"));
+    db.collection("rewards").onSnapshot(s => { rewards = s.docs.map(d => ({ id: d.id, name: String(d.data().name || "Reward"), cost: Number(d.data().cost) || 0 })); renderAll(); }, err("Rewards"));
+    db.collection("purchases").onSnapshot(s => { purchases = s.docs.map(d => Object.assign({ id: d.id }, d.data())); renderAll(); }, err("Purchases"));
+  })();
+})();
