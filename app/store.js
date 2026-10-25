@@ -82,6 +82,13 @@
       if (error) throw error;
       all.push(...data); if (data.length < size) break; from += size;
     }
+    // first sign-in on a fresh account: upload what's on this device instead of wiping it
+    if (!all.length && docs.size) {
+      const local = Array.from(docs.entries()); let i = 0;
+      if (window.showProgress) window.showProgress("Uploading your data", 0, local.length);
+      for (const [path, data] of local) { try { await pushRemote({ path, data }); } catch (e) {} i++; if (window.showProgress) window.showProgress("Uploading your data", i, local.length); }
+      return;
+    }
     const pendingPaths = new Set(pending.map(p => p.path));
     const remote = new Map(all.map(r => [r.path, r.data]));
     // keep local edits that haven't reached the server yet
