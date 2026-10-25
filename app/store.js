@@ -183,10 +183,15 @@
     signOut: async () => { if (sb) await sb.auth.signOut(); try { localStorage.removeItem(CACHE_KEY); localStorage.removeItem(PENDING_KEY); } catch (e) {} location.reload(); },
     pendingCount: () => pending.length,
     exportAll: () => ({ app: "evenings-at-home", version: 1, exportedAt: new Date().toISOString(), docs: Object.fromEntries(docs) }),
-    importAll: async (backup, replace) => {
+    importAll: async (backup, replace, onProgress) => {
       if (!backup || typeof backup.docs !== "object") throw new Error("This file isn't an Evenings at Home backup.");
-      if (replace) { for (const p of Array.from(docs.keys())) if (!(p in backup.docs)) await write(p, null); }
-      for (const [p, d] of Object.entries(backup.docs)) { if (typeof p === "string" && p.split("/").length % 2 === 0 && d && typeof d === "object") await write(p, d); }
+      const entries = Object.entries(backup.docs).filter(([p, d]) => typeof p === "string" && p.split("/").length % 2 === 0 && d && typeof d === "object");
+      const drop = replace ? Array.from(docs.keys()).filter(p => !(p in backup.docs)) : [];
+      const total = entries.length + drop.length; let done = 0;
+      const tick = async () => { done++; if (onProgress) { onProgress(done, total); await new Promise(r => setTimeout(r, 15)); } };
+      if (onProgress) onProgress(0, total);
+      for (const p of drop) { await write(p, null); await tick(); }
+      for (const [p, d] of entries) { await write(p, d); await tick(); }
     }
   };
 })();

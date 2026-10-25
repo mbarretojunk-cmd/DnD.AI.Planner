@@ -151,7 +151,7 @@
       const f = e.target.files && e.target.files[0]; if (!f) return;
       try {
         const backup = JSON.parse(await f.text());
-        await window.Store.importAll(backup, $("setReplace").checked);
+        await window.Store.importAll(backup, $("setReplace").checked, (d, t) => window.showProgress("Importing your backup", d, t));
         $("setStatus").textContent = "Imported " + Object.keys(backup.docs).length + " items.";
       } catch (err) { $("setStatus").textContent = err.message || "That file couldn't be read."; }
       e.target.value = "";
@@ -165,11 +165,32 @@
     document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("settings").hidden) close(); });
   }
   window.Settings = { open, close };
+  // green progress bar at the bottom of the screen
+  window.showProgress = (label, done, total) => {
+    let el = document.getElementById("progressToast");
+    if (!el) {
+      el = document.createElement("div"); el.id = "progressToast"; el.className = "ptoast"; el.setAttribute("role", "status");
+      el.innerHTML = '<div class="ptoast-row"><span class="ptoast-label"></span><span class="ptoast-num"></span></div><div class="ptoast-bar"><span></span></div>';
+      document.body.appendChild(el);
+    }
+    clearTimeout(el._t); el.hidden = false; el.classList.remove("done");
+    const pct = total ? Math.round(done / total * 100) : 0;
+    el.querySelector(".ptoast-bar span").style.width = pct + "%";
+    if (total && done >= total) {
+      el.classList.add("done");
+      el.querySelector(".ptoast-label").textContent = "Done";
+      el.querySelector(".ptoast-num").textContent = "✓ " + total + " items";
+      el._t = setTimeout(() => { el.hidden = true; }, 2500);
+    } else {
+      el.querySelector(".ptoast-label").textContent = label + "…";
+      el.querySelector(".ptoast-num").textContent = done + " / " + total;
+    }
+  };
   window.loadStarter = async () => {
     const res = await fetch("starter.json", { cache: "no-store" });
     if (!res.ok) throw new Error("not found");
     const data = await res.json();
-    await window.Store.importAll(data, false);
+    await window.Store.importAll(data, false, (d, t) => window.showProgress("Loading the starter set", d, t));
     return Object.keys(data.docs).length;
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire); else wire();
