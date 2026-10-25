@@ -68,7 +68,9 @@ async function main() {
 
   const { data: rows, error } = await sb.from("docs").select("user_id,path,data");
   if (error) fail("Supabase refused the read: " + (error.message || JSON.stringify(error)) + ". Check that SUPABASE_SECRET_KEY is the secret key (sb_secret_…), not the publishable one.");
-  console.log("Read " + rows.length + " documents; push subscriptions: " + rows.filter(r => r.path.startsWith("push/")).length);
+  const nSubs = rows.filter(r => r.path.startsWith("push/")).length;
+  console.log("::notice::Read " + rows.length + " documents for " + new Set(rows.map(r => r.user_id)).size + " account(s); phones with reminders on: " + nSubs + "; slot: " + slot.name);
+  if (!rows.length) fail("No data came back from Supabase. SUPABASE_SECRET_KEY is probably the publishable key instead of the secret key (sb_secret_…).");
   const users = new Map();
   for (const r of rows) { if (!users.has(r.user_id)) users.set(r.user_id, new Map()); users.get(r.user_id).set(r.path, r.data); }
 
@@ -82,7 +84,7 @@ async function main() {
     if (!msg) { console.log("Nothing to send for", slot.key); }
     else {
       for (const [path, sub] of subs) {
-        try { await webpush.sendNotification(sub.subscription, JSON.stringify(msg), { TTL: 3600 }); console.log("Sent to", path); }
+        try { const r = await webpush.sendNotification(sub.subscription, JSON.stringify(msg), { TTL: 3600, urgency: "high" }); console.log("::notice::Sent to " + path + " (" + r.statusCode + ")"); }
         catch (e) {
           console.log("::warning::Push failed for " + path + ": " + (e.statusCode || "") + " " + (e.body || e.message || ""));
           if (e.statusCode === 404 || e.statusCode === 410) await sb.from("docs").delete().eq("user_id", uid).eq("path", path);
