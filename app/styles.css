@@ -291,6 +291,37 @@ details.mlog summary { padding: 4px 0; font-family: var(--body); font-weight: 70
 .ptoast-bar { height: 10px; border-radius: 5px; background: var(--sunk); overflow: hidden; }
 .ptoast-bar span { display: block; height: 100%; width: 0; background: var(--hp); border-radius: 5px; transition: width .2s ease; }
 .ptoast.done .ptoast-num { color: var(--hp); font-weight: 500; }
+
+/* header + drawer */
+.top { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.top-title { min-width: 0; }
+.top-title .eyebrow { font-size: 0.66rem; }
+.top-title h1 { font-size: 1.35rem; line-height: 1.1; }
+.menu-btn { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; color: var(--ink); }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; top: 0; bottom: 0; left: 0; width: min(82vw, 320px); z-index: 45; background: var(--surface); border-right: 1px solid var(--line); padding: calc(18px + env(safe-area-inset-top, 0px)) 12px calc(18px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 6px; transform: translateX(-105%); transition: transform .22s ease; overflow-y: auto; visibility: hidden; }
+.drawer.open { transform: none; visibility: visible; }
+.drawer-head { display: flex; align-items: center; gap: 12px; padding: 4px 8px 14px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.drawer-head img { border-radius: 12px; }
+.drawer-head b { display: block; font-family: var(--display); font-size: 1.05rem; }
+.drawer-head small, .ditem small { display: block; color: var(--muted); font-size: 0.78rem; font-weight: 400; }
+.dtabs { display: grid; gap: 4px; }
+.ditem { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 12px; padding: 11px 12px; color: var(--ink); }
+.ditem svg { flex: none; color: var(--muted); }
+.ditem b { font-weight: 700; }
+.ditem[aria-selected="true"] { background: var(--lamp-soft); }
+.ditem[aria-selected="true"] svg { color: var(--lamp); }
+#openSettings { margin-top: auto; border-top: 1px solid var(--line); border-radius: 0 0 12px 12px; padding-top: 14px; }
+@media (prefers-reduced-motion: reduce) { .drawer, .scrim { transition: none; } }
+/* recipe cards with pictures */
+.rcard { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: start; }
+.rimg { width: 92px; height: 92px; border-radius: 12px; object-fit: cover; background: var(--sunk); display: block; }
+.rimg.ph { display: grid; place-items: center; color: var(--muted); }
+.rfull { font-size: 0.82rem; color: var(--muted); }
+.rcredit { font-size: 0.68rem; color: var(--muted); }
+.rcredit a { color: inherit; }
+.brew-hero { width: 100%; max-height: 180px; object-fit: cover; border-radius: 14px; }
 /* brewing overlay */
 .brew { position: fixed; inset: 0; z-index: 50; background: var(--bg); overflow-y: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .brew-inner { max-width: 640px; margin: 0 auto; min-height: 100%; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 16px; padding-block: 18px 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }

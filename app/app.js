@@ -713,7 +713,7 @@
       const rc = recipes.find(x => x.id === pr.id); if (!rc) return;
       const row = document.createElement("div"); row.className = "mrow";
       row.innerHTML = '<span class="grow"></span>';
-      row.querySelector(".grow").textContent = rc.name;
+      row.querySelector(".grow").textContent = shortName(rc);
       const st = document.createElement("span"); st.className = "stepper";
       const minus = mkBtn("−", "", () => setPortions(week, pr.id, pr.portions - 1)); minus.setAttribute("aria-label", "Fewer portions");
       const num = document.createElement("span"); num.className = "mono small"; num.textContent = pr.portions + " lunch" + (pr.portions === 1 ? "" : "es");
@@ -733,7 +733,7 @@
     (plan.dinners || []).forEach(pd => {
       const rc = recipes.find(x => x.id === pd.id); if (!rc) return;
       const row = document.createElement("div"); row.className = "mrow";
-      row.innerHTML = '<span class="grow"></span>'; row.querySelector(".grow").textContent = rc.name;
+      row.innerHTML = '<span class="grow"></span>'; row.querySelector(".grow").textContent = shortName(rc);
       const st = document.createElement("span"); st.className = "stepper";
       const minus = mkBtn("−", "", () => setNights(week, pd.id, pd.nights - 1)); minus.setAttribute("aria-label", "Fewer nights");
       const num = document.createElement("span"); num.className = "mono small"; num.textContent = pd.nights + " night" + (pd.nights === 1 ? "" : "s");
@@ -793,19 +793,30 @@
       if (kind !== lastKind) { const hd = document.createElement("div"); hd.className = "eyebrow"; hd.style.marginTop = lastKind ? "8px" : "0"; hd.textContent = kind === "lunch" ? "Lunch prep (batch cook)" : "Quick dinners (about 2 nights each)"; rb.appendChild(hd); lastKind = kind; }
       const inPlan = kind === "lunch" ? plan.recipes.some(p => p.id === rc.id) : (plan.dinners || []).some(p => p.id === rc.id);
       const div = document.createElement("div"); div.className = "recipe";
-      div.innerHTML = '<div class="between"><h3></h3><span class="small muted mono">' + (rc.minutes || "?") + ' min · ' + (kind === "lunch" ? "makes " + (rc.portions || "?") : (rc.portions || 2) + " nights") + '</span></div>';
-      div.querySelector("h3").textContent = rc.name;
+      const card = document.createElement("div"); card.className = "rcard";
+      const img = safeUrl((rc.image && rc.image.url) || "");
+      if (img) { const im = document.createElement("img"); im.className = "rimg"; im.loading = "lazy"; im.alt = shortName(rc); im.src = img; im.onerror = () => { im.replaceWith(placeholderImg(kind)); }; card.appendChild(im); }
+      else card.appendChild(placeholderImg(kind));
+      const info = document.createElement("div"); info.className = "stack"; info.style.gap = "3px"; info.style.minWidth = "0";
+      info.innerHTML = '<h3></h3><div class="rfull"></div><div class="small muted mono">' + (rc.minutes || "?") + ' min · ' + (kind === "lunch" ? "makes " + (rc.portions || "?") : (rc.portions || 2) + " nights") + '</div>';
+      info.querySelector("h3").textContent = shortName(rc);
+      info.querySelector(".rfull").textContent = rc.short ? rc.name : "";
+      const links = document.createElement("div"); links.className = "row"; links.style.gap = "10px";
+      const link = (label, href) => { const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener"; a.className = "small"; a.style.color = "var(--lamp)"; a.textContent = label + " ↗"; links.appendChild(a); };
+      (Array.isArray(rc.links) ? rc.links : []).forEach(l => { const u = safeUrl(l.url || ""); if (u) link(l.label || "Recipe", u); });
+      const su = safeUrl(rc.url || ""); if (su) link("Source", su);
+      link("Video", videoUrl(rc));
+      info.appendChild(links);
+      if (img && rc.image.credit) { const c = document.createElement("div"); c.className = "rcredit"; const src = safeUrl(rc.image.source || ""); c.innerHTML = "Photo: " + (src ? '<a target="_blank" rel="noopener"></a>' : "<span></span>"); const t = c.lastChild; t.textContent = rc.image.credit; if (src) t.href = src; info.appendChild(c); }
+      card.appendChild(info); div.appendChild(card);
       const acts = document.createElement("div"); acts.className = "row";
-      const add = mkBtn(inPlan ? "Remove from week" : "Add to week", "btn-small", () => kind === "lunch" ? (inPlan ? removeFromPlan(week, rc.id) : addToPlan(week, rc)) : (inPlan ? setNights(week, rc.id, 0) : addDinner(week, rc)));
+      const add = mkBtn(inPlan ? "Remove from week" : "Add to week", inPlan ? "btn-small" : "btn-small", () => kind === "lunch" ? (inPlan ? removeFromPlan(week, rc.id) : addToPlan(week, rc)) : (inPlan ? setNights(week, rc.id, 0) : addDinner(week, rc)));
       if (!inPlan && kind === "lunch" && total >= LUNCHES) { add.disabled = true; add.title = "All five lunches are planned"; }
       if (!inPlan && kind === "dinner" && nights >= DINNERS) { add.disabled = true; add.title = "All seven nights are planned"; }
       const show = mkBtn(openRecipe[rc.id] ? "Hide recipe" : "Show recipe", "btn-small", () => { openRecipe[rc.id] = !openRecipe[rc.id]; renderLunch(); });
       const key = "rc:" + rc.id;
       const del = mkBtn(confirmBox[key] ? "Confirm delete" : "Delete", "btn-small" + (confirmBox[key] ? " danger" : ""), () => confirmThen(key, () => { if (kind === "lunch") removeFromPlan(week, rc.id, true); else setNights(week, rc.id, 0); delDoc("recipes", rc.id); }));
       const brewBtn = mkBtn("Brew", "btn-small", () => openBrew(rc, kind, rc.portions, null));
-      const vid = document.createElement("a"); vid.className = "btn-small linkbtn"; vid.href = videoUrl(rc); vid.target = "_blank"; vid.rel = "noopener"; vid.textContent = "Video ↗";
-      acts.appendChild(vid);
-      const su = safeUrl(rc.url || ""); if (su) { const a = document.createElement("a"); a.className = "btn-small linkbtn"; a.href = su; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Source ↗"; acts.appendChild(a); }
       acts.append(add, brewBtn, show, del); div.appendChild(acts);
       if (openRecipe[rc.id]) {
         const det = document.createElement("div"); det.className = "stack"; det.style.gap = "8px";
@@ -861,10 +872,12 @@
   /* ================= recipe links ================= */
   function videoUrl(rc) { return "https://www.youtube.com/results?search_query=" + encodeURIComponent(rc.name + " receita"); }
   function safeUrl(u) { try { const x = new URL(u); return (x.protocol === "https:" || x.protocol === "http:") ? x.href : ""; } catch (e) { return ""; } }
+  function placeholderImg(kind) { const d = document.createElement("div"); d.className = "rimg ph"; d.innerHTML = '<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M4 11h16v2a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6zM8 8c0-2 2-2 2-4M13 8c0-2 2-2 2-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'; return d; }
+  function shortName(rc) { return (rc.short && String(rc.short).trim()) || rc.name; }
   function recipeChips(list) {
     // list: [{rc, kind, count, week}]
     const wrap = document.createElement("div"); wrap.className = "rchips";
-    list.forEach(o => { const b = mkBtn(o.rc.name, "rchip", () => openBrew(o.rc, o.kind, o.count, o.week)); b.title = "Open the recipe step by step"; wrap.appendChild(b); });
+    list.forEach(o => { const b = mkBtn(shortName(o.rc), "rchip", () => openBrew(o.rc, o.kind, o.count, o.week)); b.title = "Open the recipe step by step"; wrap.appendChild(b); });
     return wrap;
   }
   function plannedDinners(k) {
@@ -911,7 +924,7 @@
     const steps = rc.steps || [], n = steps.length, f = brew.count / (rc.portions || brew.count);
     const word = brew.kind === "dinner" ? "night" : "box";
     $("brewEyebrow").textContent = "Alchemy · " + EPITHETS[hash(rc.id) % EPITHETS.length];
-    $("brewTitle").textContent = rc.name;
+    $("brewTitle").textContent = shortName(rc);
     $("brewSub").textContent = brew.count + " " + word + (brew.count === 1 ? "" : (word === "box" ? "es" : "s")) + " · about " + (rc.minutes || "?") + " min · ";
     const va = document.createElement("a"); va.href = safeUrl(rc.url || "") || videoUrl(rc); va.target = "_blank"; va.rel = "noopener"; va.textContent = safeUrl(rc.url || "") ? "source ↗" : "watch a video ↗"; $("brewSub").appendChild(va);
     // progress
@@ -922,7 +935,8 @@
     back.disabled = brew.idx === -1;
     if (brew.idx === -1) {
       // reagents
-      body.innerHTML = '<h3>Gather your reagents</h3><p class="small muted">Weigh each one on the scale and tick it off. Amounts are already scaled to ' + brew.count + ' ' + word + (brew.count === 1 ? "" : (word === "box" ? "es" : "s")) + '.</p>';
+      const hero = safeUrl((rc.image && rc.image.url) || "");
+      body.innerHTML = (hero ? '<img class="brew-hero" alt="" src="' + esc(hero) + '">' : "") + '<h3>Gather your reagents</h3><p class="small muted">Weigh each one on the scale and tick it off. Amounts are already scaled to ' + brew.count + ' ' + word + (brew.count === 1 ? "" : (word === "box" ? "es" : "s")) + '.</p>';
       const list = document.createElement("div"); list.className = "stack"; list.style.gap = "6px";
       (rc.ingredients || []).forEach((ing, i) => {
         const done = !!brew.got[i];
@@ -1168,22 +1182,36 @@
     const steps = $("rcSteps").value.split("\n").map(s => s.trim()).filter(Boolean);
     if (!name || !ingredients.length) { $("rcStatus").textContent = "Add a name and at least one ingredient."; return; }
     try {
-      await db.collection("recipes").add({ name, kind: $("rcKind").value, portions: Number($("rcPortions").value) || 5, minutes: Number($("rcMinutes").value) || 45, ingredients, steps, url: safeUrl($("rcUrl").value.trim()), createdAt: new Date().toISOString() });
-      ["rcName", "rcIngredients", "rcSteps", "rcUrl"].forEach(id => $(id).value = ""); $("rcStatus").textContent = "Added “" + name + "” to the recipe book.";
+      const imgUrl = safeUrl($("rcImage").value.trim());
+      await db.collection("recipes").add({ name, short: $("rcShort").value.trim().slice(0, 28) || null, image: imgUrl ? { url: imgUrl } : null, kind: $("rcKind").value, portions: Number($("rcPortions").value) || 5, minutes: Number($("rcMinutes").value) || 45, ingredients, steps, url: safeUrl($("rcUrl").value.trim()), createdAt: new Date().toISOString() });
+      ["rcName", "rcShort", "rcImage", "rcIngredients", "rcSteps", "rcUrl"].forEach(id => $(id).value = ""); $("rcStatus").textContent = "Added “" + name + "” to the recipe book.";
     } catch (e) { writeErr(e); }
   });
 
   /* ================= nav ================= */
   const TABS = ["tonight", "party", "lunch", "quests", "dm"];
+  const TAB_TITLES = { tonight: "Tonight", party: "Party", lunch: "Food", quests: "Quests", dm: "Dungeon Master" };
   function setTab(t, fromHash) {
     if (!TABS.includes(t)) t = "tonight";
     tab = t;
     TABS.forEach(x => { $("tab-" + x).setAttribute("aria-selected", String(x === t)); $("view-" + x).hidden = x !== t; });
     if (!fromHash) { try { history.replaceState(null, "", "#" + t); } catch (e) {} }
+    $("sectionTitle").textContent = TAB_TITLES[t];
+    closeDrawer();
+    window.scrollTo(0, 0);
     renderAll();
     if (t === "dm" && window.DM) window.DM.render();
   }
   TABS.forEach(x => $("tab-" + x).addEventListener("click", () => setTab(x)));
+  /* slide-out menu */
+  function openDrawer() { $("drawer").classList.add("open"); $("scrim").classList.add("open"); $("menuBtn").setAttribute("aria-expanded", "true"); const sel = document.querySelector('.ditem[aria-selected="true"]'); if (sel) sel.focus(); }
+  function closeDrawer() { if (!$("drawer").classList.contains("open")) return; $("drawer").classList.remove("open"); $("scrim").classList.remove("open"); $("menuBtn").setAttribute("aria-expanded", "false"); }
+  $("menuBtn").addEventListener("click", () => $("drawer").classList.contains("open") ? closeDrawer() : openDrawer());
+  $("scrim").addEventListener("click", closeDrawer);
+  $("openSettings").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+  // swipe left on the open menu to close it
+  (() => { let x0 = null; const d = $("drawer"); d.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true }); d.addEventListener("touchend", e => { if (x0 !== null && e.changedTouches[0].clientX - x0 < -50) closeDrawer(); x0 = null; }, { passive: true }); })();
   window.addEventListener("hashchange", () => setTab(location.hash.slice(1), true));
   $("prev").onclick = () => { if (viewDate > (game.startDate || todayKey())) { viewDate = addDays(viewDate, -1); skip = 0; renderTonight(); } };
   $("next").onclick = () => { if (viewDate < addDays(todayKey(), MAX_AHEAD)) { viewDate = addDays(viewDate, 1); skip = 0; renderTonight(); } };
@@ -1242,5 +1270,24 @@
     db.collection("quests").onSnapshot(s => { quests = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { title: String(d.data().title || "Quest") })); renderAll(); }, err("Quests"));
     db.collection("rewards").onSnapshot(s => { rewards = s.docs.map(d => ({ id: d.id, name: String(d.data().name || "Reward"), cost: Number(d.data().cost) || 0 })); renderAll(); }, err("Rewards"));
     db.collection("purchases").onSnapshot(s => { purchases = s.docs.map(d => Object.assign({ id: d.id }, d.data())); renderAll(); }, err("Purchases"));
+    fillRecipeMeta(db);
   })();
+
+  // one-time: give recipes saved before short names and photos existed the starter set's extras
+  async function fillRecipeMeta(db) {
+    try {
+      if (localStorage.getItem("eah-recipe-meta") === "1") return;
+      const res = await fetch("starter.json", { cache: "no-store" }); if (!res.ok) return;
+      const starter = (await res.json()).docs || {};
+      for (const [path, src] of Object.entries(starter)) {
+        if (!path.startsWith("recipes/")) continue;
+        const cur = (await db.doc(path).get());
+        if (!cur.exists) continue;
+        const x = cur.data(), patch = {};
+        ["short", "image", "links"].forEach(k => { if (x[k] === undefined && src[k] !== undefined) patch[k] = src[k]; });
+        if (Object.keys(patch).length) await db.doc(path).update(patch);
+      }
+      localStorage.setItem("eah-recipe-meta", "1");
+    } catch (e) { console.warn("Recipe photos not added", e); }
+  }
 })();

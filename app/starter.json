@@ -106,6 +106,18 @@
     "Cook the pasta; add the broccoli florets and peas for the last 4 min.",
     "Drain, then toss everything with the remaining oil, lemon zest and juice, and the parmesan.",
     "Split into 5 boxes. Good warm or cold."
+   ],
+   "short": "Broccoli pasta",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Spaghetti_with_shrimp_and_broccoli_in_a_lemon_garlic_sauce_with_lots_of_homegrown_Italian_parsley_%E8%87%AA%E5%AE%B6%E6%A0%BD%E5%9F%B9%E3%81%AE%E3%82%A4%E3%82%BF%E3%83%AA%E3%82%A2%E3%83%B3%E3%83%91%E3%82%BB%E3%83%AA%E3%82%92%E3%81%9F%E3%81%A3%E3%81%B7%E3%82%8A%E6%95%A3%E3%82%89%E3%81%97%E3%81%9F%E3%82%A8%E3%83%93%E3%81%A8%E3%83%96%E3%83%AD%E3%83%83%E3%82%B3%E3%83%AA%E3%83%BC%E3%81%AE%E3%82%B9%E3%83%91%E3%82%B2%E3%83%86%E3%82%A3.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Spaghetti_with_shrimp_and_broccoli_in_a_lemon_garlic_sauce_with_lots_of_homegrown_Italian_parsley_%E8%87%AA%E5%AE%B6%E6%A0%BD%E5%9F%B9%E3%81%AE%E3%82%A4%E3%82%BF%E3%83%AA%E3%82%A2%E3%83%B3%E3%83%91%E3%82%BB%E3%83%AA%E3%82%92%E3%81%9F%E3%81%A3%E3%81%B7%E3%82%8A%E6%95%A3%E3%82%89%E3%81%97%E3%81%9F%E3%82%A8%E3%83%93%E3%81%A8%E3%83%96%E3%83%AD%E3%83%83%E3%82%B3%E3%83%AA%E3%83%BC%E3%81%AE%E3%82%B9%E3%83%91%E3%82%B2%E3%83%86%E3%82%A3.jpg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20massa%20integral%20frango%20br%C3%B3colos%20lim%C3%A3o"
+    }
    ]
   },
   "recipes/d-piripiri": {
@@ -173,6 +185,22 @@
     "Toss the broccoli florets and drained chickpeas with a little oil and salt.",
     "Air fry the chicken at 190 °C for 12–15 min, adding the broccoli and chickpeas for the last 8 min.",
     "Eat half tonight; keep the rest in the fridge for tomorrow."
+   ],
+   "short": "Piri-piri chicken",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/2018-02-03_Chicken_Piri-Piri%2C_Albufeira_%281%29.JPG?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:2018-02-03_Chicken_Piri-Piri%2C_Albufeira_%281%29.JPG"
+   },
+   "links": [
+    {
+     "label": "About",
+     "url": "https://pt.wikipedia.org/wiki/Piri-piri"
+    },
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20frango%20piri-piri%20air%20fryer"
+    }
    ]
   },
   "recipes/l-feijao-couve": {
@@ -260,6 +288,18 @@
     "Add the tomatoes, drained beans, stock cube and 400 ml of water. Simmer 20 min.",
     "Stir in the kale for the last 5 min. Season (a little piri-piri is good here).",
     "Split into 5 boxes. Freeze Thursday and Friday."
+   ],
+   "short": "Bean & kale stew",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bean_soup_with_tomatoes_and_red_peppers.jpeg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Bean_soup_with_tomatoes_and_red_peppers.jpeg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20guisado%20frango%20feij%C3%A3o%20branco%20couve"
+    }
    ]
   },
   "recipes/tuna-rice-salad": {
@@ -339,6 +379,18 @@
     "Dice the cucumber and red onion, halve the tomatoes, chop the parsley. Drain the tuna and chickpeas.",
     "Mix everything with the oil, lemon juice, salt and pepper.",
     "Split into 5 boxes with one halved egg on top of each. No reheating needed."
+   ],
+   "short": "Tuna rice salad",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Tuna_Salad.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Tuna_Salad.jpg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20salada%20de%20arroz%20atum%20gr%C3%A3o"
+    }
    ]
   },
   "recipes/d-meia-desfeita": {
@@ -406,6 +458,18 @@
     "Air fry the cod at 190 °C for 10–12 min with a little oil and salt, then flake it.",
     "Warm the drained chickpeas with finely chopped onion and garlic.",
     "Mix cod, chickpeas, chopped egg and parsley; dress with olive oil and a splash of vinegar."
+   ],
+   "short": "Cod & chickpeas",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bacalhau_%C3%A0_minhota.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Bacalhau_%C3%A0_minhota.jpg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20meia%20desfeita%20de%20bacalhau"
+    }
    ]
   },
   "recipes/d-salmon": {
@@ -453,6 +517,18 @@
     "Cook the brown rice (25–30 min); keep half for tomorrow.",
     "Rub the salmon with oil, lemon zest and salt. Air fry at 190 °C for 9–11 min.",
     "Boil or air fry the green beans (8 min) alongside."
+   ],
+   "short": "Salmon & green beans",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Salmon_al_horno.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Salmon_al_horno.jpg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20salm%C3%A3o%20air%20fryer%20feij%C3%A3o%20verde"
+    }
    ]
   },
   "recipes/l-caldo-verde": {
@@ -520,6 +596,22 @@
     "Blend the potato broth until smooth. Add the drained beans and the couve and simmer 5 min, until the couve is bright green.",
     "Stir the chicken back in, finish with the olive oil and season.",
     "Split into 5 boxes."
+   ],
+   "short": "Caldo verde",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Caldo_verde.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Caldo_verde.jpg"
+   },
+   "links": [
+    {
+     "label": "About",
+     "url": "https://pt.wikipedia.org/wiki/Caldo%20verde"
+    },
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20caldo%20verde"
+    }
    ]
   },
   "recipes/d-espetadas": {
@@ -592,6 +684,22 @@
     "Air fry at 190 °C for 14–16 min, turning halfway.",
     "Mix the yogurt with grated cucumber, grated garlic and salt for the dip.",
     "Keep half for tomorrow night."
+   ],
+   "short": "Chicken skewers",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Souvlaki_1.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Souvlaki_1.jpg"
+   },
+   "links": [
+    {
+     "label": "About",
+     "url": "https://en.wikipedia.org/wiki/Souvlaki"
+    },
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20espetadas%20de%20frango%20air%20fryer"
+    }
    ]
   },
   "recipes/l-sopa-lentilhas": {
@@ -678,6 +786,18 @@
     "Add the whole chicken breasts and simmer 25 min, until the lentils are soft.",
     "Lift out the chicken, shred it with two forks. Blend half the soup for a thicker texture (optional), then stir the chicken back in.",
     "Finish with lemon juice and chopped herbs. Split into 5 boxes."
+   ],
+   "short": "Lentil soup",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Red_lentil_soup.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Red_lentil_soup.jpg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20sopa%20de%20lentilhas%20ab%C3%B3bora%20frango"
+    }
    ]
   },
   "recipes/d-ovos-grao": {
@@ -751,6 +871,22 @@
     "Soften the onion and garlic in the oil, add the spices, tomatoes and drained chickpeas and simmer 8 min.",
     "Stir in the spinach. Make 3 hollows and crack in 3 eggs.",
     "Cover and cook 5–6 min until the whites are set. Keep half the sauce for tomorrow and add 3 fresh eggs then."
+   ],
+   "short": "Eggs & chickpeas",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Shakshuka1.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Shakshuka1.jpg"
+   },
+   "links": [
+    {
+     "label": "About",
+     "url": "https://en.wikipedia.org/wiki/Shakshouka"
+    },
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20ovos%20no%20forno%20tomate%20gr%C3%A3o%20espinafres"
+    }
    ]
   },
   "recipes/d-tunapasta": {
@@ -816,6 +952,18 @@
     "Cook the pasta; add the peas for the last 3 min.",
     "Soften the chopped onion and garlic in the oil, add passata and oregano and simmer 10 min.",
     "Stir in the drained tuna and the pasta."
+   ],
+   "short": "Tuna pasta",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Tuna_pasta_salad.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Tuna_pasta_salad.jpg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20massa%20de%20atum%20com%20tomate"
+    }
    ]
   },
   "recipes/l-frango-grego": {
@@ -896,6 +1044,18 @@
     "Air fry the chicken at 190 °C for 12–14 min, shaking halfway, until cooked through (no pink inside).",
     "Cook the bulgur in salted water (about 12 min) and fluff it with the last spoon of oil and some lemon juice.",
     "Split into 5 boxes with a small scoop of bulgur each."
+   ],
+   "short": "Greek chicken & bulgur",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Roasted_chicken_and_potatoes.JPG?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Roasted_chicken_and_potatoes.JPG"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=air%20fryer%20lemon%20oregano%20chicken%20bulgur%20recipe"
+    }
    ]
   },
   "recipes/l-grao-frango": {
@@ -991,6 +1151,18 @@
     "Stir in the spinach until it wilts. Season with salt and pepper.",
     "Meanwhile cook the brown rice (25–30 min).",
     "Split into 5 boxes: a big ladle of stew and about 3 tablespoons of rice each. Freeze the Thursday and Friday boxes."
+   ],
+   "short": "Chickpea stew",
+   "image": {
+    "url": "https://commons.wikimedia.org/wiki/Special:FilePath/GarbanzosConEspinacas.jpg?width=480",
+    "credit": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:GarbanzosConEspinacas.jpg"
+   },
+   "links": [
+    {
+     "label": "Recipes",
+     "url": "https://www.google.com/search?q=receita%20guisado%20de%20gr%C3%A3o%20com%20frango%20e%20espinafres"
+    }
    ]
   },
   "rewards/takeaway": {
