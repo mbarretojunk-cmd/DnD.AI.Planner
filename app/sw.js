@@ -1,6 +1,6 @@
 // Evenings at Home service worker: keeps the app shell available offline.
 // Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = "eah-v9";
+const VERSION = "eah-v10";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "store.js", "dm.js", "config.js", "starter.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -28,7 +28,7 @@ self.addEventListener("push", e => {
   let msg = { title: "Evenings at Home", body: "Time for one small thing." };
   try { if (e.data) msg = Object.assign(msg, e.data.json()); } catch (err) { if (e.data) msg.body = e.data.text(); }
   e.waitUntil(self.registration.showNotification(msg.title, {
-    body: msg.body, icon: "icons/icon-192.png", badge: "icons/icon-192.png", tag: "evenings-nudge", renotify: true, data: { url: "./" }
+    body: msg.body, icon: msg.icon || "icons/icon-192.png", badge: "icons/badge.png", tag: "evenings-nudge", renotify: true, data: { url: "./" }
   }));
 });
 self.addEventListener("notificationclick", e => {

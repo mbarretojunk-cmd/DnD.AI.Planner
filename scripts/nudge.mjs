@@ -52,6 +52,9 @@ function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^=
 const GUARD = { cat: "familiar", house: "fighter", food: "cleric", hobby: "wizard" };
 const DEFAULT_NAMES = { cleric: "Brother Aldo", fighter: "Hilde", familiar: "your cat", wizard: "Ismay", rogue: "Wren" };
 const GROUP_ORDER = ["cat", "house", "food"];
+const slug = n => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const monsterIcon = m => "icons/monsters/" + slug(m) + ".png";
+const partyIcon = id => "icons/party/" + id + ".png";
 
 async function main() {
   const now = lisbonNow();
@@ -140,18 +143,18 @@ function compose(docs, now, slot) {
 
   if (slot.name === "weekend-morning") {
     if (!open.length && !prepLeft) return null;
-    if (lab) return { title: "Lab day", body: first ? "Weekend chores are off. Just " + first.name.toLowerCase() + " when you're home." : "Weekend chores are off. Good luck in the lab." };
+    if (lab) return { icon: partyIcon("rogue"), title: "Lab day", body: first ? "Weekend chores are off. Just " + first.name.toLowerCase() + " when you're home." : "Weekend chores are off. Good luck in the lab." };
     const what = (open.length ? open.length + " chore" + (open.length === 1 ? "" : "s") : "") + (open.length && prepLeft ? " + " : "") + (prepLeft ? "lunch prep" : "");
-    return { title: (dow === 6 ? "Saturday" : "Sunday") + " block", body: what + ". Start with " + (first ? label(first).toLowerCase() : "the lunch prep") + ", then the day is yours." };
+    return { icon: first ? partyIcon(GUARD[first.group]) : partyIcon("rogue"), title: (dow === 6 ? "Saturday" : "Sunday") + " block", body: what + ". Start with " + (first ? label(first).toLowerCase() : "the lunch prep") + ", then the day is yours." };
   }
   if (slot.name === "weekend-evening") {
     if (!first) return null;
-    return { title: monster + " is waiting", body: "Before you log in: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 6 damage at midnight otherwise." };
+    return { icon: monsterIcon(monster), title: monster + " is waiting", body: "Before you log in: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 6 damage at midnight otherwise." };
   }
   // weekday evening
-  if (!first) return { title: "Duties done", body: "Everything's ticked. Free time can start early tonight." };
-  if (slot.at === 18 * 60 + 45 && !doneCount) return { title: monster + " appears", body: "Home time. " + open.length + " chore" + (open.length === 1 ? "" : "s") + " tonight, start with " + label(first).toLowerCase() + "." };
-  return { title: monster + " · " + open.length + " left", body: "Quick one: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 6 damage at midnight if it waits." };
+  if (!first) return { icon: partyIcon("wizard"), title: "Duties done", body: "Everything's ticked. Free time can start early tonight." };
+  if (slot.at === 18 * 60 + 45 && !doneCount) return { icon: monsterIcon(monster), title: monster + " appears", body: "Home time. " + open.length + " chore" + (open.length === 1 ? "" : "s") + " tonight, start with " + label(first).toLowerCase() + "." };
+  return { icon: partyIcon(GUARD[first.group]), title: monster + " · " + open.length + " left", body: "Quick one: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 6 damage at midnight if it waits." };
 }
 
 main().catch(e => fail("Unexpected error: " + (e && e.message ? e.message : e)));

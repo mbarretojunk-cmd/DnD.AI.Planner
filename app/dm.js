@@ -246,7 +246,7 @@
     try {
       if (Notification.permission !== "granted") { const p = await Notification.requestPermission(); if (p !== "granted") return refresh(); }
       const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification("Evenings at Home", { body: "This is what a reminder looks like.", icon: "icons/icon-192.png", tag: "evenings-test" });
+      await reg.showNotification("Dish Hydra appears", { body: "This is what a reminder looks like.", icon: "icons/monsters/dish-hydra.png", badge: "icons/badge.png", tag: "evenings-test" });
     } catch (e) { $("pushState").textContent = "Couldn't show a notification: " + (e && e.message ? e.message : e); }
   }
   function wire() {
