@@ -67,7 +67,7 @@ async function main() {
   if (!slot) { console.log("No reminder slot right now (" + now.key + " " + Math.floor(now.mins / 60) + ":" + String(now.mins % 60).padStart(2, "0") + " Lisbon)."); return; }
 
   const { data: rows, error } = await sb.from("docs").select("user_id,path,data");
-  if (error) fail("Supabase refused the read: " + (error.message || "") + " — the key on GitHub starts with \"" + SECRET.slice(0, 10) + "\" and is " + SECRET.length + " characters long" + (/[•*]/.test(SECRET) ? " and contains hidden-mask characters (copy it again after revealing it)" : "") + ". Detail: " + (error.message || JSON.stringify(error)) + ". Check that SUPABASE_SECRET_KEY is the secret key (sb_secret_…), not the publishable one.");
+  if (error) fail("Supabase refused the read: " + (error.message || "") + " — the key on GitHub " + (SECRET.startsWith("sb_secret_") ? "does" : "does NOT") + " start with sb_secret_" + (/[•*]/.test(SECRET) ? " and contains hidden-mask characters (copy it again after revealing it)" : "") + ". Detail: " + (error.message || JSON.stringify(error)) + ". Check that SUPABASE_SECRET_KEY is the secret key (sb_secret_…), not the publishable one.");
   const nSubs = rows.filter(r => r.path.startsWith("push/")).length;
   console.log("::notice::Read " + rows.length + " documents for " + new Set(rows.map(r => r.user_id)).size + " account(s); phones with reminders on: " + nSubs + "; slot: " + slot.name);
   if (!rows.length) fail("No data came back from Supabase. SUPABASE_SECRET_KEY is probably the publishable key instead of the secret key (sb_secret_…).");
