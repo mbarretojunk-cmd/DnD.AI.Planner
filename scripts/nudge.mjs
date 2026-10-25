@@ -10,7 +10,7 @@ import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SECRET = process.env.SUPABASE_SECRET_KEY;
+const SECRET = (process.env.SUPABASE_SECRET_KEY || "").trim().replace(/^["']|["']$/g, "");
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
 const FORCE = process.env.FORCE_SLOT || ""; // "test", "weekday", "weekend-morning", "weekend-evening"
@@ -67,7 +67,7 @@ async function main() {
   if (!slot) { console.log("No reminder slot right now (" + now.key + " " + Math.floor(now.mins / 60) + ":" + String(now.mins % 60).padStart(2, "0") + " Lisbon)."); return; }
 
   const { data: rows, error } = await sb.from("docs").select("user_id,path,data");
-  if (error) fail("Supabase refused the read: " + (error.message || JSON.stringify(error)) + ". Check that SUPABASE_SECRET_KEY is the secret key (sb_secret_…), not the publishable one.");
+  if (error) fail("Supabase refused the read: " + (error.message || "") + " — the key on GitHub starts with \"" + SECRET.slice(0, 10) + "\" and is " + SECRET.length + " characters long" + (/[•*]/.test(SECRET) ? " and contains hidden-mask characters (copy it again after revealing it)" : "") + ". Detail: " + (error.message || JSON.stringify(error)) + ". Check that SUPABASE_SECRET_KEY is the secret key (sb_secret_…), not the publishable one.");
   const nSubs = rows.filter(r => r.path.startsWith("push/")).length;
   console.log("::notice::Read " + rows.length + " documents for " + new Set(rows.map(r => r.user_id)).size + " account(s); phones with reminders on: " + nSubs + "; slot: " + slot.name);
   if (!rows.length) fail("No data came back from Supabase. SUPABASE_SECRET_KEY is probably the publishable key instead of the secret key (sb_secret_…).");
