@@ -16,10 +16,11 @@ const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
 const FORCE = process.env.FORCE_SLOT || ""; // "test", "weekday", "weekend-morning", "weekend-evening"
 const TZ = "Europe/Lisbon";
 
-if (!SUPABASE_URL || !SECRET || !VAPID_PUBLIC || !VAPID_PRIVATE) {
-  console.error("Missing configuration: check the repository secrets SUPABASE_SECRET_KEY and VAPID_PRIVATE_KEY.");
-  process.exit(1);
-}
+// errors are printed as GitHub annotations so they show on the run's summary page
+const fail = msg => { console.log("::error::" + String(msg).replace(/\n/g, " ")); process.exit(1); };
+if (!SECRET) fail("The secret SUPABASE_SECRET_KEY is missing or empty. Add it under Settings → Secrets and variables → Actions.");
+if (!VAPID_PRIVATE) fail("The secret VAPID_PRIVATE_KEY is missing or empty. Add it under Settings → Secrets and variables → Actions.");
+if (!SUPABASE_URL || !VAPID_PUBLIC) fail("SUPABASE_URL or VAPID_PUBLIC_KEY is missing in the workflow file.");
 webpush.setVapidDetails("https://github.com/mbarretojunk-cmd/DnD.AI.Planner", VAPID_PUBLIC, VAPID_PRIVATE);
 const sb = createClient(SUPABASE_URL, SECRET, { auth: { persistSession: false } });
 
@@ -66,13 +67,14 @@ async function main() {
   if (!slot) { console.log("No reminder slot right now (" + now.key + " " + Math.floor(now.mins / 60) + ":" + String(now.mins % 60).padStart(2, "0") + " Lisbon)."); return; }
 
   const { data: rows, error } = await sb.from("docs").select("user_id,path,data");
-  if (error) throw error;
+  if (error) fail("Supabase refused the read: " + (error.message || JSON.stringify(error)) + ". Check that SUPABASE_SECRET_KEY is the secret key (sb_secret_…), not the publishable one.");
+  console.log("Read " + rows.length + " documents; push subscriptions: " + rows.filter(r => r.path.startsWith("push/")).length);
   const users = new Map();
   for (const r of rows) { if (!users.has(r.user_id)) users.set(r.user_id, new Map()); users.get(r.user_id).set(r.path, r.data); }
 
   for (const [uid, docs] of users) {
     const subs = [...docs.entries()].filter(([p]) => p.startsWith("push/"));
-    if (!subs.length) continue;
+    if (!subs.length) { console.log("::warning::No phone has turned reminders on yet. In the app: gear → Phone reminders → Turn on reminders."); continue; }
     const log = docs.get("pushlog/state") || { sent: [] };
     if (!FORCE && log.sent.includes(slot.key)) { console.log("Already sent", slot.key); continue; }
 
@@ -82,7 +84,7 @@ async function main() {
       for (const [path, sub] of subs) {
         try { await webpush.sendNotification(sub.subscription, JSON.stringify(msg), { TTL: 3600 }); console.log("Sent to", path); }
         catch (e) {
-          console.warn("Push failed for", path, e.statusCode || e.message);
+          console.log("::warning::Push failed for " + path + ": " + (e.statusCode || "") + " " + (e.body || e.message || ""));
           if (e.statusCode === 404 || e.statusCode === 410) await sb.from("docs").delete().eq("user_id", uid).eq("path", path);
         }
       }
@@ -149,4 +151,4 @@ function compose(docs, now, slot) {
   return { title: monster + " · " + open.length + " left", body: "Quick one: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 6 damage at midnight if it waits." };
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch(e => fail("Unexpected error: " + (e && e.message ? e.message : e)));
