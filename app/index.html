@@ -261,6 +261,16 @@
         <button type="button" class="btn-small" id="setSignOut" hidden>Sign out</button>
       </div>
       <div class="panel">
+        <h3>Phone reminders</h3>
+        <p class="small muted">Weekdays at 18:45, 19:45 and 20:45; weekends at 10:45 and 18:45. One short nudge about the most urgent chore, based on your real progress.</p>
+        <p class="small" id="pushState"></p>
+        <div class="row">
+          <button type="button" class="btn-main" id="pushOn">Turn on reminders</button>
+          <button type="button" class="btn-quiet" id="pushTest">Show a test notification</button>
+          <button type="button" class="btn-small" id="pushOff" hidden>Turn off on this phone</button>
+        </div>
+      </div>
+      <div class="panel">
         <h3>Dungeon Master</h3>
         <label class="f" for="setKey">Claude API key (stays on this device)<input id="setKey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
         <div class="form-row">

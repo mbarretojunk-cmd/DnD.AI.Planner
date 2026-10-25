@@ -195,3 +195,59 @@
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire); else wire();
 })();
+
+/* ---------------- Phone reminders (web push) ---------------- */
+(function () {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const cfg = window.EAH_CONFIG || {};
+  const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  function b64ToUint8(b64) { const pad = "=".repeat((4 - b64.length % 4) % 4); const s = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
+  async function subId(sub) { const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sub.endpoint)); return Array.from(new Uint8Array(buf)).slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join(""); }
+  async function current() { if (!supported) return null; const reg = await navigator.serviceWorker.ready; return reg.pushManager.getSubscription(); }
+  async function refresh() {
+    const st = $("pushState"); if (!st) return;
+    if (!supported) { st.textContent = "This browser can't receive reminders. Install the app from Chrome on Android."; $("pushOn").hidden = true; return; }
+    if (window.Store.mode !== "synced") { st.textContent = "Reminders need sync to be set up first."; $("pushOn").disabled = true; return; }
+    const sub = await current().catch(() => null);
+    const perm = Notification.permission;
+    if (perm === "denied") st.textContent = "Notifications are blocked for this app. Allow them in Android settings → Apps → Evenings → Notifications.";
+    else st.textContent = sub ? "On for this phone." : "Off for this phone.";
+    $("pushOn").hidden = !!sub; $("pushOff").hidden = !sub;
+  }
+  async function turnOn() {
+    $("pushState").textContent = "Asking for permission…";
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") { await refresh(); return; }
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(cfg.vapidPublicKey) });
+      const db = await window.Store.ready();
+      await db.doc("push/" + await subId(sub)).set({ subscription: sub.toJSON(), device: navigator.userAgent.slice(0, 120), createdAt: new Date().toISOString() });
+      $("pushState").textContent = "On for this phone. The first nudge comes at the next reminder time.";
+      $("pushOn").hidden = true; $("pushOff").hidden = false;
+    } catch (e) { $("pushState").textContent = "Couldn't turn reminders on: " + (e && e.message ? e.message : e); }
+  }
+  async function turnOff() {
+    try {
+      const sub = await current(); if (!sub) return refresh();
+      const db = await window.Store.ready(); await db.doc("push/" + await subId(sub)).delete();
+      await sub.unsubscribe(); await refresh();
+    } catch (e) { $("pushState").textContent = "Couldn't turn reminders off: " + (e && e.message ? e.message : e); }
+  }
+  async function test() {
+    try {
+      if (Notification.permission !== "granted") { const p = await Notification.requestPermission(); if (p !== "granted") return refresh(); }
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification("Evenings at Home", { body: "This is what a reminder looks like.", icon: "icons/icon-192.png", tag: "evenings-test" });
+    } catch (e) { $("pushState").textContent = "Couldn't show a notification: " + (e && e.message ? e.message : e); }
+  }
+  function wire() {
+    $("pushOn").addEventListener("click", turnOn);
+    $("pushOff").addEventListener("click", turnOff);
+    $("pushTest").addEventListener("click", test);
+    $("openSettings").addEventListener("click", () => setTimeout(refresh, 0));
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire); else wire();
+})();

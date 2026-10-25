@@ -1,0 +1,36 @@
+name: Phone reminders
+
+on:
+  schedule:
+    - cron: "45 * * * *"   # every hour at :45; the script decides (in Lisbon time) whether it's a reminder slot
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Send now: test, weekday, weekend-morning or weekend-evening"
+        required: false
+        default: "test"
+
+concurrency:
+  group: nudge
+  cancel-in-progress: false
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node nudge.mjs
+        env:
+          SUPABASE_URL: https://alxsiiuiqlqitkkbvxoy.supabase.co
+          VAPID_PUBLIC_KEY: BDRi2IbkXbLg6muzmck4vY73O_j8PtybmZ1pCxxX0HqIzs_DjFtv5TEWucG8K8NIHkMRLAlJPx9T0ZtdlLgCjVI
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          FORCE_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.slot || '' }}

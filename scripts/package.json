@@ -1,0 +1,13 @@
+{
+  "name": "evenings-at-home-reminders",
+  "private": true,
+  "type": "module",
+  "description": "Sends the app's phone reminders (web push), run on a schedule by GitHub Actions.",
+  "scripts": {
+    "nudge": "node nudge.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.3",
+    "web-push": "3.6.7"
+  }
+}
