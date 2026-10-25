@@ -30,7 +30,7 @@ jobs:
       - run: node nudge.mjs
         env:
           SUPABASE_URL: https://alxsiiuiqlqitkkbvxoy.supabase.co
-          VAPID_PUBLIC_KEY: BDRi2IbkXbLg6muzmck4vY73O_j8PtybmZ1pCxxX0HqIzs_DjFtv5TEWucG8K8NIHkMRLAlJPx9T0ZtdlLgCjVI
+          VAPID_PUBLIC_KEY: BODIGnfhq9eE84qlmPFe14vXniwCTGvRhrW9j37skr_Z3AIEguOH4VgI2SR9S-hj5m_vEW7TMklLeY2q9A-6F9g
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           FORCE_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.slot || '' }}

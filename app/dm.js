@@ -222,6 +222,11 @@
       if (perm !== "granted") { await refresh(); return; }
       const reg = await navigator.serviceWorker.ready;
       let sub = await reg.pushManager.getSubscription();
+      const keyNow = b64ToUint8(cfg.vapidPublicKey);
+      if (sub && sub.options && sub.options.applicationServerKey) {
+        const old = new Uint8Array(sub.options.applicationServerKey);
+        if (old.length !== keyNow.length || old.some((v, i) => v !== keyNow[i])) { await sub.unsubscribe(); sub = null; }
+      }
       if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(cfg.vapidPublicKey) });
       const db = await window.Store.ready();
       await db.doc("push/" + await subId(sub)).set({ subscription: sub.toJSON(), device: navigator.userAgent.slice(0, 120), createdAt: new Date().toISOString() });

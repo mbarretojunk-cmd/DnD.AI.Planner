@@ -10,5 +10,5 @@ window.EAH_CONFIG = {
   supabaseUrl: "https://alxsiiuiqlqitkkbvxoy.supabase.co",
   supabaseAnonKey: "sb_publishable_h8GrRq0zGnwVzQ8ZldyvEw__4Tu_SqC",
   // public half of the notification key pair (the private half is a GitHub secret)
-  vapidPublicKey: "BDRi2IbkXbLg6muzmck4vY73O_j8PtybmZ1pCxxX0HqIzs_DjFtv5TEWucG8K8NIHkMRLAlJPx9T0ZtdlLgCjVI"
+  vapidPublicKey: "BODIGnfhq9eE84qlmPFe14vXniwCTGvRhrW9j37skr_Z3AIEguOH4VgI2SR9S-hj5m_vEW7TMklLeY2q9A-6F9g"
 };
