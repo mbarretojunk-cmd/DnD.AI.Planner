@@ -127,6 +127,7 @@
     $("setSignOut").hidden = mode !== "synced";
     if (mode === "synced") window.Store.email().then(e => { if (e) $("setMode").textContent = "Synced as " + e + (window.Store.pendingCount() ? " · " + window.Store.pendingCount() + " change(s) waiting to upload" : ""); });
     $("setStatus").textContent = "";
+    $("setVersion").textContent = "App version " + (window.EAH_VERSION || "?");
   }
   function close() { $("settings").hidden = true; document.body.style.overflow = ""; if (window.DM) window.DM.render(); }
   function wire() {

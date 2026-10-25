@@ -87,7 +87,8 @@ async function main() {
         try { const r = await webpush.sendNotification(sub.subscription, JSON.stringify(msg), { TTL: 3600, urgency: "high" }); console.log("::notice::Sent to " + path + " (" + r.statusCode + ")"); }
         catch (e) {
           console.log("::warning::Push failed for " + path + ": " + (e.statusCode || "") + " " + (e.body || e.message || ""));
-          if (e.statusCode === 404 || e.statusCode === 410) await sb.from("docs").delete().eq("user_id", uid).eq("path", path);
+          // gone, or made with an older notification key: forget it so the phone can subscribe again
+          if (e.statusCode === 404 || e.statusCode === 410 || (e.statusCode === 403 && /VAPID/i.test(e.body || ""))) await sb.from("docs").delete().eq("user_id", uid).eq("path", path);
         }
       }
     }
