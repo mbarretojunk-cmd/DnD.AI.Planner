@@ -28,16 +28,16 @@ jobs:
             if [ -z "$url" ]; then echo "::warning::No download link found for $p"; continue; fi
             curl -sL "$url" -o "/tmp/$p.zip"
             mkdir -p "/tmp/out/$p" && unzip -q -o "/tmp/$p.zip" -d "/tmp/out/$p"
-            n=$(find "/tmp/out/$p" -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' \) | wc -l)
-            echo "::notice title=$p::$n sound files"
+            n=$(find "/tmp/out/$p" -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' -o -name '*.png' \) | wc -l)
+            echo "::notice title=$p::$n files"
           done
-          find /tmp/out -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' -o -iname 'license*' \) | sed 's|/tmp/out/||' | sort > /tmp/out/LIST.txt
+          find /tmp/out -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' -o -name '*.png' -o -iname 'license*' \) | sed 's|/tmp/out/||' | sort > /tmp/out/LIST.txt
           wc -l /tmp/out/LIST.txt
       - name: Save to the assets-src branch
         run: |
           set -e
           git config user.name "assets-bot"; git config user.email "assets-bot@users.noreply.github.com"
-          git checkout --orphan assets-src
-          git rm -rq --cached . && find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          mkdir -p kenney && cd /tmp/out && find . -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' -o -iname 'license*' -o -name 'LIST.txt' \) -exec cp --parents {} "$GITHUB_WORKSPACE/kenney/" \;
-          cd "$GITHUB_WORKSPACE" && git add kenney && git commit -qm "Kenney CC0 sound packs (source for app sounds)" && git push -qf origin assets-src
+          if git ls-remote --exit-code origin assets-src >/dev/null; then git fetch -q origin assets-src && git checkout -q assets-src; else git checkout --orphan assets-src && git rm -rq --cached . && find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +; fi
+          mkdir -p kenney && cd /tmp/out && find . -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' -o -iname 'license*' -o -name 'LIST.txt' \) -exec cp --parents {} "$GITHUB_WORKSPACE/kenney/" \; || true
+          cd /tmp/out && find . -type f -name '*.png' -size -400k -exec cp --parents {} "$GITHUB_WORKSPACE/kenney/" \;
+          cd "$GITHUB_WORKSPACE" && git add kenney && git commit -qm "Kenney CC0 packs (source for app art and sounds)" && git push -q origin assets-src
