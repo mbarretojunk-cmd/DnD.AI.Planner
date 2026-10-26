@@ -310,6 +310,30 @@
   <button type="button" class="ditem" id="openSettings"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span><b>Settings</b><small>Sync, reminders, backup, AI key</small></span></button>
 </nav>
 
+<div id="focus" class="focus" role="dialog" aria-modal="true" aria-labelledby="focusTitle" hidden>
+  <div class="focus-inner">
+    <div class="brew-top">
+      <div style="min-width:0">
+        <div class="eyebrow">Focus timer</div>
+        <h2 id="focusTitle">Timer</h2>
+      </div>
+      <button type="button" class="btn-small" id="focusHide">Hide</button>
+    </div>
+    <p class="small focus-swap" id="focusSwap" hidden>Another timer is already running. Finish or give up this one first.</p>
+    <div class="focus-clock">
+      <div class="focus-time mono" id="focusTime" aria-live="polite">30:00</div>
+      <div class="focus-bar" aria-hidden="true"><div class="focus-fill" id="focusFill"></div></div>
+      <div class="focus-state" id="focusState"></div>
+    </div>
+    <label class="small muted focus-awake"><input type="checkbox" id="focusAwake" checked> Keep the screen on (the alarm can't ring while the phone sleeps)</label>
+    <div class="focus-nav">
+      <button type="button" class="btn-quiet danger" id="focusStop">Give up</button>
+      <button type="button" class="btn-main" id="focusPause">Pause</button>
+      <button type="button" class="btn-main" id="focusDone" hidden>Collect XP ✓</button>
+    </div>
+  </div>
+</div>
+
 <div id="brew" class="brew" role="dialog" aria-modal="true" aria-labelledby="brewTitle" hidden>
   <div class="brew-inner">
     <div class="brew-top">

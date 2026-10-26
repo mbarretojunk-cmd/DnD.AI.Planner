@@ -355,3 +355,26 @@ details.mlog summary { padding: 4px 0; font-family: var(--body); font-weight: 70
 @media (prefers-reduced-motion: no-preference) {
   .check, .cell, .item, .bar > span { transition: background-color .15s ease, border-color .15s ease, width .3s ease; }
 }
+
+/* focus timer */
+.focus { position: fixed; inset: 0; z-index: 55; background: var(--bg); overflow-y: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.focus-inner { max-width: 640px; margin: 0 auto; min-height: 100%; display: grid; grid-template-rows: auto auto 1fr auto auto; gap: 18px; padding: 18px max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); }
+.focus-clock { display: grid; align-content: center; justify-items: center; gap: 18px; }
+.focus-time { font-size: clamp(4rem, 22vw, 7rem); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.02em; }
+.focus-bar { width: 100%; height: 22px; border-radius: 999px; background: var(--sunk); overflow: hidden; }
+.focus-fill { height: 100%; width: 100%; border-radius: 999px; background: var(--lamp); transition: width 0.25s linear, background 0.3s; }
+.focus-state { font-size: 1rem; color: var(--muted, inherit); text-align: center; }
+.focus.warn .focus-fill { background: var(--lamp) !important; animation: focuspulse 1s ease-in-out infinite; }
+.focus.warn .focus-time { color: var(--lamp); }
+.focus.over .focus-time { color: var(--hurt); animation: focuspulse 0.8s ease-in-out 4; }
+.focus.over .focus-state { color: var(--hurt); font-weight: 700; }
+@keyframes focuspulse { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .focus.warn .focus-fill, .focus.over .focus-time { animation: none; } }
+.focus-swap { background: var(--lamp-soft); border-radius: 10px; padding: 8px 12px; margin: 0; }
+.focus-awake { display: flex; gap: 8px; align-items: start; }
+.focus-nav { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; position: sticky; bottom: 0; background: var(--bg); padding-block: 10px; }
+.focus-nav button { padding-block: 14px; font-size: 1rem; }
+.focus-nav #focusDone { grid-column: 1 / -1; }
+.titem.timed .tmeta { color: var(--lamp); }
+.focus-awake input { width: auto; flex: none; margin-top: 3px; }
+.focus-awake { justify-content: center; }

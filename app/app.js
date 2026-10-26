@@ -406,7 +406,13 @@
       const gp = PARTY.find(x => x.id === GROUPS[h.group].member);
       if (!done && kind === "must" && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.title = gp.name + " takes 6 damage if this is left undone"; }
       else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.title = "XP for " + gp.name; }
-      b.onclick = () => toggleDay(h.id, k);
+      const timed = h.minutes && !done && k === todayKey();
+      if (timed) {
+        const running = timer && timer.hid === h.id && timer.k === k;
+        meta.textContent = running ? "⏱ " + (timerLeft() ? fmtClock(timerLeft()) + " left · tap to open" : "time's up") : "⏱ tap to start the " + h.minutes + "-min timer · counts when it ends";
+        if (!mt) nm.appendChild(meta);
+        b.classList.add("timed"); b.onclick = () => running ? showTimer() : startTimer(h, k);
+      } else b.onclick = () => toggleDay(h.id, k);
       if (isFuture) b.disabled = true;
       return b;
     };
@@ -1253,6 +1259,95 @@
     notice: showNotice
   };
 
+  /* ================= focus timer for timed habits ================= */
+  function timedMinutes(x) {
+    const n = Number(x.minutes); if (n > 0) return Math.min(240, n);
+    const m = /(\d{1,3})\s*-?\s*min/i.exec(String(x.name || "")); return m ? Math.min(240, Number(m[1])) : 0;
+  }
+  const TIMER_KEY = "eah-timer";
+  var timer = null, timerTick = null, timerLock = null, daysLoaded = false;
+  function loadTimer() { try { return JSON.parse(localStorage.getItem(TIMER_KEY) || "null"); } catch (e) { return null; } }
+  function saveTimer() { try { if (timer) localStorage.setItem(TIMER_KEY, JSON.stringify(timer)); else localStorage.removeItem(TIMER_KEY); } catch (e) {} }
+  function timerLeft() { if (!timer) return 0; return Math.max(0, timer.paused != null ? timer.paused : timer.endAt - Date.now()); }
+  function fmtClock(ms) { const t = Math.ceil(ms / 1000), m = Math.floor(t / 60), sec = t % 60; return pad(m) + ":" + pad(sec); }
+  function startTimer(h, k) {
+    if (timer && timer.hid !== h.id && timerLeft() > 0) { showTimer(); $("focusSwap").hidden = false; return; }
+    const total = h.minutes * 60000;
+    timer = { hid: h.id, k, name: displayName(h, k), group: h.group, total, endAt: Date.now() + total, paused: null, warned: false, rang: false };
+    saveTimer();
+    try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {}
+    showTimer();
+  }
+  function showTimer() {
+    if (!timer) return;
+    $("focus").hidden = false; document.body.style.overflow = "hidden";
+    $("focusTitle").textContent = timer.name;
+    $("focusFill").style.background = GROUPS[timer.group] ? GROUPS[timer.group].color : "var(--lamp)";
+    $("focusSwap").hidden = true;
+    keepAwake($("focusAwake").checked);
+    clearInterval(timerTick); timerTick = setInterval(paintTimer, 250); paintTimer();
+  }
+  function hideTimer() {
+    $("focus").hidden = true; document.body.style.overflow = "";
+    clearInterval(timerTick); timerTick = null; keepAwake(false);
+    if (timer && timerLeft() > 0) timerTick = setInterval(backgroundCheck, 1000);
+    renderAll();
+  }
+  function backgroundCheck() { if (!timer) { clearInterval(timerTick); return; } if (timerLeft() === 0 && !timer.rang) { ring(); showTimer(); } }
+  function keepAwake(on) {
+    try {
+      if (on && navigator.wakeLock && !timerLock && document.visibilityState === "visible") navigator.wakeLock.request("screen").then(l => { timerLock = l; l.addEventListener("release", () => { timerLock = null; }); }).catch(() => {});
+      if (!on && timerLock) { timerLock.release(); timerLock = null; }
+    } catch (e) {}
+  }
+  function paintTimer() {
+    if (!timer) return;
+    const left = timerLeft(), frac = timer.total ? left / timer.total : 0, done = left === 0;
+    $("focusTime").textContent = done ? "00:00" : fmtClock(left);
+    $("focusFill").style.width = (frac * 100).toFixed(2) + "%";
+    const warn = !done && left <= 60000;
+    $("focus").classList.toggle("warn", warn); $("focus").classList.toggle("over", done);
+    $("focusState").textContent = done ? "Time's up! It's ticked off and the XP is yours." : timer.paused != null ? "Paused. Points only count when the timer ends." : warn ? "Less than a minute left" : "Ends at " + new Date(timer.endAt).toTimeString().slice(0, 5) + " · points when it ends";
+    if (warn && !timer.warned) { timer.warned = true; saveTimer(); try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) {} }
+    if (done && !timer.rang) ring();
+    $("focusPause").hidden = done; $("focusPause").textContent = timer.paused != null ? "Resume" : "Pause";
+    $("focusStop").hidden = done; $("focusDone").hidden = !done;
+  }
+  function ring() {
+    timer.rang = true; saveTimer();
+    creditTimer();
+    beep(); setTimeout(beep, 1300); setTimeout(beep, 2600);
+    try { if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 800]); } catch (e) {}
+    try {
+      if (window.Notification && Notification.permission === "granted" && navigator.serviceWorker)
+        navigator.serviceWorker.ready.then(r => r.showNotification("Time's up", { body: timer.name + " · " + Math.round(timer.total / 60000) + " minutes done. Tap to tick it off.", icon: "icons/icon-192.png", badge: "icons/badge.png", tag: "eah-timer", vibrate: [500, 200, 500], requireInteraction: true }));
+    } catch (e) {}
+  }
+  function creditTimer(t) {
+    t = t || timer; if (!t || t.credited) return;
+    if (!db || !canWrite || !daysLoaded) { setTimeout(() => creditTimer(t), 1000); return; }
+    if (!isDone(t.hid, t.k)) toggleDay(t.hid, t.k);
+    t.credited = true; if (t === timer) saveTimer();
+  }
+  function endTimer() {
+    timer = null; saveTimer();
+    clearInterval(timerTick); timerTick = null;
+    hideTimer();
+  }
+  $("focusPause").onclick = () => {
+    if (!timer) return;
+    if (timer.paused != null) { timer.endAt = Date.now() + timer.paused; timer.paused = null; } else timer.paused = timerLeft();
+    saveTimer(); paintTimer();
+  };
+  $("focusDone").onclick = endTimer;
+  $("focusStop").onclick = () => { if ($("focusStop").dataset.sure === "1" || timerLeft() === 0) endTimer(); else { $("focusStop").dataset.sure = "1"; $("focusStop").textContent = "Tap again to give up (no points)"; setTimeout(() => { $("focusStop").dataset.sure = ""; $("focusStop").textContent = "Give up"; }, 3000); } };
+  $("focusHide").onclick = hideTimer;
+  $("focusAwake").onchange = e => { try { localStorage.setItem("eah-awake", e.target.checked ? "1" : "0"); } catch (x) {} keepAwake(e.target.checked); };
+  try { $("focusAwake").checked = localStorage.getItem("eah-awake") !== "0"; } catch (e) {}
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && timer && !$("focus").hidden) { keepAwake($("focusAwake").checked); paintTimer(); } else if (document.visibilityState === "visible" && timer && timerLeft() === 0 && !timer.rang) { ring(); showTimer(); } });
+  timer = loadTimer();
+  if (timer) setTimeout(showTimer, 400);
+
   /* ================= data ================= */
   (async () => {
     db = await window.Store.ready();
@@ -1261,10 +1356,10 @@
     const err = what => () => showNotice(what + " stopped updating. Reload the page.");
     db.doc("game/state").onSnapshot(s => { game = s.exists ? Object.assign({ startDate: null }, s.data()) : { startDate: null }; applyNames(); renderRenameFields(); renderAll(); }, err("Game data"));
     db.collection("habits").onSnapshot(s => {
-      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null }; });
+      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null, minutes: timedMinutes(x) }; });
       renderAll();
     }, err("Habits"));
-    db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); renderAll(); }, err("Check-ins"));
+    db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); daysLoaded = true; renderAll(); }, err("Check-ins"));
     db.collection("recipes").onSnapshot(s => { recipes = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { name: String(d.data().name || "Untitled") })); renderAll(); }, err("Recipes"));
     db.collection("plans").onSnapshot(s => { const p = {}; s.docs.forEach(d => { const x = d.data(); p[d.id] = { week: d.id, recipes: Array.isArray(x.recipes) ? x.recipes : [], dinners: Array.isArray(x.dinners) ? x.dinners : [], extras: Array.isArray(x.extras) ? x.extras : [], brewed: x.brewed || {}, got: x.got || {}, steps: x.steps || {}, skipped: !!x.skipped }; }); plans = p; renderAll(); }, err("Lunch plans"));
     db.collection("quests").onSnapshot(s => { quests = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { title: String(d.data().title || "Quest") })); renderAll(); }, err("Quests"));
