@@ -133,7 +133,7 @@
   const maxHp = lv => 30 + 5 * (lv - 1);
   function levelOf(xp) { let l = 1; while (xp >= xpFor(l + 1)) l++; return l; }
 
-  const BONUS_GOLD = 5, BOSS_MAX = 6;
+  const BONUS_GOLD = 5, BOSS_MAX = 6, MUST_MIN = 4;
   // which due tasks the monster is made of, most important first:
   // cat basics, then that day's scheduled chores and follow-ups, then food, then daily house, then free time
   function bossRank(h) {
@@ -150,17 +150,24 @@
     const extraDue = due.slice(BOSS_MAX);               // due today but only bonus
     const weekly = hs.filter(h => isWeekly(h));
     const doneDaily = daily.filter(h => isDone(h.id, k));
-    const missedDaily = daily.filter(h => !isDone(h.id, k));
     const doneExtra = extraDue.filter(h => isDone(h.id, k));
     const doneWeekly = weekly.filter(h => isDone(h.id, k));
     const ms = milestonesDoneOn(k);
     const mon = MONSTERS[hash(k) % MONSTERS.length];
-    // the monster has one hit point block per must-do: finish them all and it falls.
-    // weekly targets and quest milestones done the same day are bonus loot.
-    const foeHp = 10 * daily.length;
-    const dealt = 10 * doneDaily.length;
-    const bonus = doneWeekly.length + doneExtra.length + ms;
-    return { k, daily, weekly, extraDue, doneExtra, doneDaily, missedDaily, doneWeekly, ms, bonus, monster: mon[0], lore: mon[1], foeHp, dealt, win: missedDaily.length === 0 };
+    // the monster takes 6 hits: at least 4 from tonight's must-dos, the rest from anything.
+    // hits past that are bonus loot.
+    const mustNeed = Math.min(MUST_MIN, daily.length);
+    const need = Math.min(BOSS_MAX, daily.length + extraDue.length + weekly.length + ms);
+    const anyNeed = need - mustNeed;
+    const otherDone = doneExtra.length + doneWeekly.length + ms;
+    const mustHits = Math.min(doneDaily.length, need);
+    const anyHits = Math.min(anyNeed, Math.max(0, mustHits - mustNeed) + otherDone);
+    const hits = Math.min(need, Math.min(mustHits, mustNeed) + anyHits);
+    const win = hits >= need;
+    const bonus = doneDaily.length + otherDone - hits;
+    // if it survives, the highest-ranked open must-dos each strike back, one per missing hit
+    const missedDaily = win ? [] : daily.filter(h => !isDone(h.id, k)).slice(0, need - hits);
+    return { k, daily, weekly, extraDue, doneExtra, doneDaily, missedDaily, doneWeekly, ms, bonus, mustNeed, anyNeed, need, hits, monster: mon[0], lore: mon[1], foeHp: 10 * need, dealt: 10 * hits, win };
   }
 
   function computeGame() {
@@ -393,18 +400,18 @@
     const doneN = all.filter(h => isDone(h.id, k)).length;
     $("count").textContent = all.length ? doneN + " / " + all.length + " done" : "";
     $("todoFill").style.width = (all.length ? doneN / all.length * 100 : 0) + "%";
-    const mustOpen = must.filter(h => !isDone(h.id, k));
-    const freeOpen = free.filter(h => isBoss(h) && !isDone(h.id, k));
-    const freeTail = freeOpen.length ? ", then " + (freeOpen.length === 1 ? (n => n.charAt(0).toLowerCase() + n.slice(1))(freeOpen[0].name.replace(/\s*\(.*\)$/, "")) : freeOpen.length + " more") + " in free time to finish the monster" : "";
+    const R = evaluateDay(k, G.level);
+    const mLeft = Math.max(0, R.mustNeed - Math.min(R.doneDaily.length, R.mustNeed));
+    const aLeft = Math.max(0, R.need - R.hits - mLeft);
+    const toWin = [mLeft ? mLeft + " more must-do" + (mLeft === 1 ? "" : "s") : "", aLeft ? aLeft + " of anything" : ""].filter(Boolean).join(" + ");
     let note = "";
     if (isFuture) note = "Preview. You can tick these on the day.";
     else if (preStart) note = "Setup day: nothing is scored yet. Have a look at how a normal evening will feel.";
     else if (!all.length) note = "Nothing due. Enjoy the evening.";
-    else if (!mustOpen.length && doneN === all.length) note = "Everything's done. Go read and play.";
-    else if (!mustOpen.length && freeOpen.length) note = "Chores done. Finish the monster in free time: " + freeOpen.map(h => h.name.replace(/\s*\(.*\)$/, "")).join(", ") + ". Anything else is bonus loot.";
-    else if (!mustOpen.length) note = "The monster is beaten. Anything else is bonus loot.";
-    else if (isToday && !inFreeTime()) { const left = FREE - nowMins(); note = mustOpen.length + " must-do" + (mustOpen.length === 1 ? "" : "s") + " left" + freeTail + "." + (left > 0 && nowMins() >= START ? " " + Math.floor(left / 60) + " h " + pad(left % 60) + " min until free time." : "") + " Start at the top."; }
-    else note = mustOpen.length + " must-do" + (mustOpen.length === 1 ? "" : "s") + " still open. Each one left at midnight costs its guardian 6 HP.";
+    else if (doneN === all.length) note = "Everything's done. Go read and play.";
+    else if (R.win) note = "The monster is beaten. Anything else is bonus loot: XP and gold.";
+    else if (isToday && !inFreeTime()) { const left = FREE - nowMins(); note = "To kill the monster: " + toWin + "." + (left > 0 && nowMins() >= START ? " " + Math.floor(left / 60) + " h " + pad(left % 60) + " min until free time." : "") + (mLeft ? " Start at the top." : " Pick any task, reading counts too."); }
+    else note = "To kill the monster: " + toWin + ". If it survives midnight, open must-dos cost their guardian 6 HP each.";
     $("todoNote").textContent = note;
     let firstMarked = false;
     const row = (h, kind) => {
@@ -426,8 +433,8 @@
       meta.textContent = mt; if (mt) nm.appendChild(meta);
       const side = b.querySelector(".tside");
       const gp = PARTY.find(x => x.id === GROUPS[h.group].member);
-      if (!done && (kind === "must" || (kind === "free" && isBoss(h))) && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.dataset.tip = "Must-do. If it's still open at midnight, " + gp.name + " (" + gp.cls + ") takes 6 damage."; }
-      else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.dataset.tip = kind === "must" || (kind === "free" && isBoss(h)) ? "+10 XP for " + gp.name + " (" + gp.cls + ") and a hit on the monster. It also heals them 3 HP." : "Extra: +" + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + " XP for " + gp.name + " (" + gp.cls + "), +" + BONUS_GOLD + " gold in tonight’s loot and 3 HP of healing. It doesn’t hit the monster."; }
+      if (!done && kind === "must" && mLeft > 0 && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.dataset.tip = "Must-do: a hit on the monster and +10 XP for " + gp.name + ". The monster needs " + R.mustNeed + " must-dos tonight; if it survives midnight, " + gp.name + " (" + gp.cls + ") takes 6 damage for this one."; }
+      else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.dataset.tip = (kind === "must" ? "Must-do: a hit on the monster" : "Counts as one of the monster’s “anything” hits, or bonus loot (+" + BONUS_GOLD + " gold) once those are filled") + ". +" + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + " XP for " + gp.name + " (" + gp.cls + ") and 3 HP of healing."; }
       const timed = h.minutes && !done && k === todayKey();
       if (timed) {
         const running = timer && timer.hid === h.id && timer.k === k;
@@ -447,7 +454,7 @@
       open.forEach(h => { sec.appendChild(row(h, kind)); if (h.link === "dinner" && !isFuture) { const pd = plannedDinners(k); if (pd.length) sec.appendChild(recipeChips(pd)); } });
       box.appendChild(sec);
     };
-    section("Must do today", "missed = damage at midnight", must, "must");
+    section("Must-dos", "the monster needs " + R.mustNeed + " of these", must, "must");
     // Sunday lunch prep shows up as part of the day's list
     const prepWeek = addDays(k, 1), prepPlan = planOf(prepWeek);
     if (dow(k) === 0 && !isLab(k) && !prepPlan.skipped && !isFuture) {
@@ -468,8 +475,8 @@
         box.appendChild(sec);
       }
     }
-    section("Extras", "bonus XP and gold, no damage", opt, "opt");
-    section("Free time", "from 21:30", free, "free");
+    section("Extras", "hit the monster too, then bonus loot", opt, "opt");
+    section("Free time", "from 21:30 · counts as anything", free, "free");
     const doneList = all.filter(h => isDone(h.id, k));
     if (doneList.length) {
       const d = document.createElement("details"); d.className = "done-box"; d.open = !!openRecipe.__doneOpen;
@@ -500,23 +507,25 @@
     const r = evaluateDay(viewDate, G.level);
     const enc = $("encounter"); enc.classList.toggle("won", r.win && !isFuture);
     const left = Math.max(0, r.foeHp - r.dealt);
-    const bonusXp = 15 * r.doneWeekly.length + 10 * (r.doneExtra.length + r.ms);
+    const bonusXp = 10 * r.bonus;
     let threat = "";
     if (isToday && !r.win && viewDate >= startK) {
       let tot = r.missedDaily.length * 6; PARTY.forEach(p => { if (!G.members[p.id].ko) tot += 4; });
-      threat = '<div class="threat-line"><span class="tl-lbl" data-tip="What happens if the monster is still alive at midnight, counted as things stand right now.">At midnight:</span><span data-tip="Damage to the party if you lose: 6 to the guardian of each missed must-do, plus 4 to every member still standing.">' + ICON.heart + '−' + tot + '</span><span data-tip="XP lost if the night is lost.">' + ICON.star + '−10</span><span data-tip="Gold lost if the night is lost: a quarter of your purse.">' + ICON.coin + '−' + Math.floor(G.gold * 0.25) + '</span></div>';
+      threat = '<div class="threat-line"><span class="tl-lbl" data-tip="What happens if the monster is still alive at midnight, counted as things stand right now.">At midnight:</span><span data-tip="Damage if it survives: for each missing hit, an open must-do strikes its guardian for 6, plus 4 to every member still standing.">' + ICON.heart + '−' + tot + '</span><span data-tip="XP lost if the night is lost.">' + ICON.star + '−10</span><span data-tip="Gold lost if the night is lost: a quarter of your purse.">' + ICON.coin + '−' + Math.floor(G.gold * 0.25) + '</span></div>';
     }
-    const need = r.daily.length, landed = r.doneDaily.length;
-    const swords = Array.from({ length: need }, (_, i) => '<span class="sw' + (i < landed ? " on" : "") + '">' + ICON.sword + '</span>').join("");
+    const need = r.need, landed = r.hits;
+    const mustLit = Math.min(r.doneDaily.length, r.mustNeed), anyLit = landed - mustLit;
+    const swords = Array.from({ length: need }, (_, i) => { const any = i >= r.mustNeed; const on = any ? i - r.mustNeed < anyLit : i < mustLit; return '<span class="sw' + (any ? " any" : "") + (on ? " on" : "") + '">' + ICON.sword + '</span>'; }).join("");
+    const mustLeft = r.mustNeed - mustLit, anyLeft = r.anyNeed - anyLit;
     const hitNow = isToday && Date.now() - lastHit < 1600;
     enc.innerHTML =
-      '<div class="foe"><div class="foe-icon' + (hitNow ? " hit" : "") + (r.win ? " dead" : "") + '" data-tip="Tonight’s monster. Each must-do you finish hits it for 10. Finish all of tonight’s must-dos and it falls: no damage, plus XP and gold.">' + foeIcon(r.monster) + (hitNow ? '<span class="dmgfloat">−10</span>' : "") + '</div>' +
+      '<div class="foe"><div class="foe-icon' + (hitNow ? " hit" : "") + (r.win ? " dead" : "") + '" data-tip="Tonight’s monster takes 6 hits: at least 4 must-dos, plus 2 of anything (extras, reading, weekly chores). Kill it and nobody takes damage; you get XP, gold and healing.">' + foeIcon(r.monster) + (hitNow ? '<span class="dmgfloat">−10</span>' : "") + '</div>' +
       '<div style="min-width:0;flex:1"><div class="eyebrow">' + (isToday ? "Tonight" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div>' +
-      '<div class="foe-hpbig" data-tip="Monster HP left: 10 per open must-do. At 0 the party wins the night: no damage, plus XP, gold and healing.">' + ICON.heart + '<b>' + left + '</b></div></div>' +
+      '<div class="foe-hpbig" data-tip="Monster HP left: 10 for each hit still needed. At 0 the party wins the night: no damage, plus XP, gold and healing.">' + ICON.heart + '<b>' + left + '</b></div></div>' +
       '<div class="foe-hp">' + bar(r.foeHp ? left / r.foeHp * 100 : 0, "var(--hurt)") + '</div>' +
-      '<div class="hits"><div class="swords" aria-label="' + landed + ' of ' + need + ' hits" data-tip="One sword per must-do. Lit swords are must-dos you’ve already done tonight. Light them all to win.">' + swords + '</div><span class="hitlbl">' + (r.win ? (need ? "Defeated! No damage tonight" : "A quiet night") : (need - landed) + " must-do" + (need - landed === 1 ? "" : "s") + " to win") + '</span></div>' + threat +
-      (r.win || r.bonus ? '<div class="loot-line" data-tip="Extras: weekly targets and quest milestones. They don’t hit the monster, but each one adds XP tonight and +' + BONUS_GOLD + ' gold to the loot when the monster falls.">' + ICON.star + '<span>' + (r.bonus ? "Bonus loot: " + r.bonus + " extra" + (r.bonus === 1 ? "" : "s") + " · +" + bonusXp + " XP · +" + BONUS_GOLD * r.bonus + " gold" : "Want more loot? Each extra task adds XP and +" + BONUS_GOLD + " gold.") + '</span></div>' : "");
-    if (isFuture) enc.innerHTML = '<div class="foe"><div class="foe-icon">' + foeIcon(r.monster) + '</div><div style="min-width:0;flex:1"><div class="eyebrow">' + (viewDate === addDays(today, 1) ? "Tomorrow" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div><div class="foe-hpbig" data-tip="The monster’s HP: 10 per must-do that day.">' + ICON.heart + '<b>' + r.foeHp + '</b></div></div><div class="hits"><div class="swords" data-tip="Must-dos needed to kill it that night.">' + Array.from({ length: need }, () => '<span class="sw">' + ICON.sword + '</span>').join("") + '</div><span class="hitlbl">' + need + ' must-do' + (need === 1 ? "" : "s") + ' to kill</span></div>';
+      '<div class="hits"><div class="swords" aria-label="' + landed + ' of ' + need + ' hits" data-tip="Solid swords need must-dos. Dashed swords take any task (extras, reading, more must-dos). Lit swords are hits landed. Light them all to win.">' + swords + '</div><span class="hitlbl">' + (r.win ? (need ? "Defeated! No damage tonight" : "A quiet night") : [mustLeft ? mustLeft + " must-do" + (mustLeft === 1 ? "" : "s") : "", anyLeft ? anyLeft + " of anything" : ""].filter(Boolean).join(" + ") + " to win") + '</span></div>' + threat +
+      (r.win || r.bonus ? '<div class="loot-line" data-tip="Hits past the 6 the monster needs are bonus loot: their XP plus +' + BONUS_GOLD + ' gold each when the monster falls.">' + ICON.star + '<span>' + (r.bonus ? "Bonus loot: " + r.bonus + " extra hit" + (r.bonus === 1 ? "" : "s") + " · +" + bonusXp + " XP · +" + BONUS_GOLD * r.bonus + " gold" : "Want more loot? Every task past the kill adds XP and +" + BONUS_GOLD + " gold.") + '</span></div>' : "");
+    if (isFuture) enc.innerHTML = '<div class="foe"><div class="foe-icon">' + foeIcon(r.monster) + '</div><div style="min-width:0;flex:1"><div class="eyebrow">' + (viewDate === addDays(today, 1) ? "Tomorrow" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div><div class="foe-hpbig" data-tip="The monster’s HP: 10 per must-do that day.">' + ICON.heart + '<b>' + r.foeHp + '</b></div></div><div class="hits"><div class="swords" data-tip="Hits needed that night: solid ones must be must-dos, dashed ones can be anything.">' + Array.from({ length: r.need }, (_, i) => '<span class="sw' + (i >= r.mustNeed ? " any" : "") + '">' + ICON.sword + '</span>').join("") + '</div><span class="hitlbl">' + r.mustNeed + ' must-do' + (r.mustNeed === 1 ? "" : "s") + (r.anyNeed ? ' + ' + r.anyNeed + ' of anything' : "") + ' to kill</span></div>';
     if (viewDate < startK) { enc.classList.add("won"); enc.innerHTML = '<div class="eyebrow">Setup day</div><div class="foe-name">The adventure starts ' + (startK === addDays(today, 1) ? "tomorrow" : niceDate(startK)) + '</div><p class="small muted">Nothing today is scored. Tick things if you like, it costs nothing.</p>'; }
     // rest day
     const resting = !!(days[viewDate] && days[viewDate].rest);
@@ -1310,7 +1319,7 @@
     lines.push("Game started: " + (game.startDate || today) + ". Party level " + G.level + ", " + G.gold + " gold, " + G.xp + " XP.");
     lines.push("Party: " + PARTY.map(p => { const m = G.members[p.id]; return p.name + " (" + p.cls + ", guards " + p.guards + ", Lv " + m.lv + ", " + (m.ko ? "DOWN" : m.hp + "/" + m.max + " HP") + ")"; }).join("; "));
     const r = evaluateDay(today, G.level);
-    lines.push("Tonight's monster: " + r.monster + " (" + r.lore + "), " + Math.max(0, r.foeHp - r.dealt) + "/" + r.foeHp + " HP left" + (r.win ? ", already defeated" : "") + ". Only must-dos hit it (10 each); finish them all and it falls. Extras add XP and +" + BONUS_GOLD + " gold loot.");
+    lines.push("Tonight's monster: " + r.monster + " (" + r.lore + "), " + Math.max(0, r.foeHp - r.dealt) + "/" + r.foeHp + " HP left" + (r.win ? ", already defeated" : "") + ". It takes " + r.need + " hits: at least " + r.mustNeed + " must-dos, the rest any task. Hits past that are bonus loot (+" + BONUS_GOLD + " gold each).");
     const due = habitsOn(today).filter(h => dueOn(h, today));
     const fmt = h => displayName(h, today) + " [" + GROUPS[h.group].label + (mustDo(h, today) ? ", must-do" : ", optional") + "]";
     lines.push("Done today: " + (due.filter(h => isDone(h.id, today)).map(fmt).join("; ") || "nothing yet"));

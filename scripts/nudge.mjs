@@ -129,10 +129,22 @@ function compose(docs, now, slot) {
   };
   // the monster is the 6 highest-ranked due tasks (same ranking as the app); the rest are extras
   const rank = h => (h.after || (Array.isArray(h.days) && h.days.length)) ? 1 : ({ cat: 0, food: 2, house: 3 }[h.group] ?? 4);
+  // and it takes 6 hits: at least 4 of those must-dos, the rest any task
   const boss = habits.filter(isDue).sort((a, b) => rank(a) - rank(b) || (a.order || 0) - (b.order || 0) || (a.id < b.id ? -1 : 1)).slice(0, 6);
-  const open = boss.filter(h => !done(h.id, today))
+  const bossIds = new Set(boss.map(h => h.id));
+  const mustNeed = Math.min(4, boss.length), mustDone = boss.filter(h => done(h.id, today)).length;
+  const otherDone = habits.filter(h => !bossIds.has(h.id) && done(h.id, today)).length;
+  const need = Math.min(6, habits.length), anyNeed = need - mustNeed;
+  const hits = Math.min(mustDone, mustNeed) + Math.min(anyNeed, Math.max(0, mustDone - mustNeed) + otherDone);
+  const open = hits >= need ? [] : boss.filter(h => !done(h.id, today))
     .sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || (a.order || 0) - (b.order || 0));
-  const doneCount = boss.filter(h => done(h.id, today)).length;
+  const doneCount = mustDone + otherDone;
+  const anyOnly = open.length && mustDone >= mustNeed;   // must-dos covered, just needs any task
+  if (anyOnly && slot.name !== "weekend-morning") {
+    const left = need - hits;
+    const mon = MONSTERS[hash(today) % MONSTERS.length];
+    return { icon: monsterIcon(mon), title: mon + " is almost down", body: left + " more hit" + (left === 1 ? "" : "s") + " of anything finishes it: a chore, the laundry, or your reading." };
+  }
   const monster = MONSTERS[hash(today) % MONSTERS.length];
   const first = open[0];
   const who = first ? names[GUARD[first.group]] : "";

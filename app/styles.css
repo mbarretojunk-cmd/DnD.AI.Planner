@@ -263,6 +263,8 @@ details.done-box summary { padding: 4px 0; font-family: var(--mono); font-size: 
 .swords { display: flex; flex-wrap: wrap; gap: 4px; }
 .sw { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--sunk); color: var(--muted); }
 .sw.on { background: var(--lamp); color: var(--on-accent); }
+.sw.any { background: transparent; border: 1.5px dashed var(--line); }
+.sw.any.on { background: var(--hobby); border-color: var(--hobby); color: var(--on-accent); }
 .sw .ic { width: 16px; height: 16px; }
 .hitlbl { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
 .threat-line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-family: var(--mono); font-size: 0.85rem; color: var(--hurt); }
