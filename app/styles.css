@@ -482,3 +482,37 @@ details.mlog summary { padding: 4px 0; font-family: var(--body); font-weight: 70
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-18deg); } 75% { transform: rotate(18deg); } }
 @keyframes fall { 0% { opacity: 1; transform: translateY(0) rotate(var(--r)); } 100% { opacity: .9; transform: translateY(108vh) rotate(calc(var(--r) + 600deg)); } }
 @media (prefers-reduced-motion: reduce) { .tale *, .tale { animation: none !important; } .tstar { transform: none; } .tn-foe { filter: none; } }
+
+/* the campaign */
+.sdots { display: inline-flex; gap: 5px; align-items: center; }
+.sdots i { width: 10px; height: 10px; border-radius: 50%; background: var(--sunk); border: 1px solid var(--line); }
+.sdots i.on { background: var(--sc, var(--lamp)); border-color: transparent; }
+.sdots i.new { animation: dotpop .7s 2.2s cubic-bezier(.2,1.8,.4,1) backwards; box-shadow: 0 0 0 0 var(--sc); }
+.chapter-strip { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: color-mix(in srgb, var(--sc) 12%, transparent); border: 1px solid color-mix(in srgb, var(--sc) 35%, transparent); border-radius: 12px; padding: 7px 10px; margin-bottom: 12px; color: var(--ink); }
+.cs-emblem { display: grid; place-items: center; flex: none; }
+.cs-text { flex: 1; min-width: 0; display: grid; line-height: 1.25; }
+.cs-text small { font-size: .72rem; color: var(--muted); }
+.cs-text b { font-size: .92rem; }
+.chapter-strip .sdots i { width: 8px; height: 8px; }
+.story-panel { display: grid; gap: 10px; }
+.story-head { display: flex; gap: 14px; align-items: center; }
+.story-emblem { width: 60px; height: 60px; flex: none; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--sc) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc) 40%, transparent); }
+.story-head h2 { margin: 2px 0 6px; }
+.story-latest { margin: 0; font-family: var(--body); font-size: 1.02rem; line-height: 1.55; font-style: italic; }
+.story-book summary { cursor: pointer; font-weight: 600; }
+.story-pages { display: grid; gap: 10px; margin-top: 10px; }
+.story-pages p { margin: 0; line-height: 1.5; }
+.story-pages small { display: block; font-size: .72rem; color: var(--muted); font-family: var(--mono); }
+.story-pro { font-style: italic; }
+.story-set { color: var(--muted); font-size: .92rem; }
+.story-ch { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin: 8px 0 0; }
+.tale-chapter { width: 100%; display: grid; gap: 10px; justify-items: center; background: linear-gradient(180deg, color-mix(in srgb, var(--sc) 18%, transparent), rgba(255,255,255,.04)); border: 1px solid color-mix(in srgb, var(--sc) 40%, transparent); border-radius: 18px; padding: 14px 16px; animation: rise .6s 1.7s ease-out backwards; }
+.tale-chapter .sdots i { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2); width: 12px; height: 12px; }
+.tale-chapter .sdots i.on { background: var(--sc); border-color: transparent; box-shadow: 0 0 10px var(--sc); }
+.tc-head { display: flex; gap: 10px; align-items: center; text-align: left; }
+.tc-emblem { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: rgba(13,19,34,.5); animation: wiggle 1.2s 2.4s ease-in-out 2; }
+.tc-head small { display: block; font-size: .72rem; color: #b9c0d4; text-transform: uppercase; letter-spacing: .08em; }
+.tc-head b { font-size: 1.15rem; }
+.tc-text { margin: 0; min-height: 3.2em; font-family: var(--body); font-size: 1.02rem; line-height: 1.5; font-style: italic; color: #f3efe4; }
+.tc-done { font-family: var(--display); font-weight: 800; color: var(--sc); letter-spacing: .06em; text-transform: uppercase; animation: pop .6s 3.4s cubic-bezier(.2,1.6,.4,1) backwards; text-shadow: 0 0 16px var(--sc); }
+@keyframes dotpop { 0% { transform: scale(0); } 60% { transform: scale(1.8); box-shadow: 0 0 0 8px transparent; } 100% { transform: scale(1); } }

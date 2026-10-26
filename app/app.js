@@ -534,6 +534,16 @@
       enc.classList.add("won");
       enc.innerHTML = '<div class="eyebrow">Rest day</div><div class="foe-name">The party is resting</div><p class="small muted">No monster, no damage and no XP for ' + (isToday ? "today" : niceDate(viewDate)) + '. Tick anything you still manage; it just won\'t be scored.</p>';
     }
+    if (window.STORY && game.startDate && viewDate >= startK && !isFuture && !resting && r.need) {
+      const lg = storyLog(viewDate), n = r.win ? lg.wins : lg.wins + 1, pg = storyPage(n, r.monster);
+      const strip = document.createElement("button"); strip.type = "button"; strip.className = "chapter-strip"; strip.style.setProperty("--sc", pg.color);
+      strip.innerHTML = '<span class="cs-emblem">' + ART.svg(pg.icon, 22, pg.color) + '</span><span class="cs-text"><small></small><b></b></span>' + storyDots(r.win ? pg : Object.assign({}, pg, { page: pg.page - 1 }));
+      strip.querySelector("small").textContent = (pg.book === 1 ? "Chapter " + pg.chapter : "Chronicles") + (r.win ? " · page " + pg.page + " written" : " · tonight’s win writes page " + pg.page);
+      strip.querySelector("b").textContent = pg.title;
+      strip.dataset.tip = r.win ? "Tonight’s page of the story is written. Read it in the tale, or the whole story in Party." : "Every night you win turns a page of the story. Seven pages finish a chapter.";
+      strip.onclick = () => { setTab("party"); setTimeout(() => { const sp = $("storyPanel"); if (sp) sp.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); };
+      enc.prepend(strip);
+    }
     if (r.win && r.need && !isFuture && !resting && viewDate >= startK) { const tb = mkBtn(isToday ? "Read tonight’s tale" : "Read that night’s tale", "btn-small tale-btn", () => openTale(viewDate)); enc.appendChild(tb); }
     if (viewDate <= addDays(today, MAX_AHEAD) && viewDate >= startK) {
       const rk = "rest:" + viewDate, rl = restLeft(viewDate);
@@ -641,6 +651,7 @@
 
   /* ================= party tab ================= */
   function renderPartyTab() {
+    renderStoryPanel();
     $("members").innerHTML = "";
     PARTY.forEach(p => {
       const m = G.members[p.id], mx = m.max || maxHp(G.level);
@@ -1347,6 +1358,40 @@
     day: k => evaluateDay(k, G.level)
   };
 
+  /* ================= the campaign: one page per won night ================= */
+  function partyNames() { const o = {}; PARTY.forEach(p => { o[p.id] = p.name; }); return o; }
+  function storyLog(upTo) {
+    const out = [], start = game.startDate; if (!start || !window.STORY) return { wins: 0, out };
+    const today = todayKey(); let wins = 0;
+    for (let k = start; k <= upTo && k <= today; k = addDays(k, 1)) {
+      if (days[k] && days[k].rest) continue;
+      const r = evaluateDay(k, G.level); if (!r.need) continue;
+      if (r.win) { wins++; out.push({ k, win: true, n: wins, monster: r.monster }); }
+      else if (k < today) out.push({ k, win: false, monster: r.monster });
+    }
+    return { wins, out };
+  }
+  function storyPage(n, monster) { return n > 0 && window.STORY ? STORY.page(n, partyNames(), monster) : null; }
+  function storyDots(pg, animateLast) { return '<span class="sdots">' + Array.from({ length: pg.of }, (_, i) => '<i class="' + (i < pg.page ? "on" : "") + (animateLast && i === pg.page - 1 ? " new" : "") + '"></i>').join("") + '</span>'; }
+  function renderStoryPanel() {
+    const box = $("storyPanel"); if (!box || !window.STORY) return;
+    const log = storyLog(todayKey()), cur = storyPage(Math.max(1, log.wins), (log.out.filter(e => e.win).slice(-1)[0] || {}).monster);
+    const names = partyNames();
+    box.innerHTML = '<div class="story-head"><span class="story-emblem" style="--sc:' + cur.color + '">' + ART.svg(cur.icon, 40, cur.color) + '</span><div><div class="eyebrow">' + (cur.book === 1 ? "Book one · Chapter " + cur.chapter + " of " + STORY.chapters : "Book two · Chronicles") + '</div><h2></h2>' + storyDots(log.wins ? cur : Object.assign({}, cur, { page: 0 })) + '</div></div><p class="story-latest"></p><details class="story-book"><summary>Read the story so far</summary><div class="story-pages"></div></details>';
+    box.querySelector("h2").textContent = cur.title;
+    box.querySelector(".story-latest").textContent = log.wins ? cur.text : STORY.prologue(names) + " The first page turns when the first monster falls.";
+    const pages = box.querySelector(".story-pages");
+    const add = (cls, text, meta) => { const p = document.createElement("p"); p.className = cls; p.textContent = text; if (meta) { const m = document.createElement("small"); m.textContent = meta; p.prepend(m); } pages.appendChild(p); };
+    add("story-pro", STORY.prologue(names));
+    let lastCh = "";
+    log.out.forEach(e => {
+      if (!e.win) { add("story-set", STORY.setback(hash(e.k), names, e.monster), niceDate(e.k)); return; }
+      const pg = storyPage(e.n, e.monster), ch = pg.book + ":" + pg.chapter;
+      if (ch !== lastCh) { const h = document.createElement("h3"); h.className = "story-ch"; h.innerHTML = ART.svg(pg.icon, 20, pg.color) + "<span></span>"; h.querySelector("span").textContent = (pg.book === 1 ? "Chapter " + pg.chapter + ": " : "") + pg.title; pages.appendChild(h); lastCh = ch; }
+      add("story-page", pg.text, niceDate(e.k) + " · " + e.monster);
+    });
+  }
+
   /* ================= evening tale: victory recap at free time ================= */
   const slugOf = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   let taleWanted = location.hash === "#tale";
@@ -1439,6 +1484,7 @@
           '<div class="tale-crown">' + ART.svg("laurel-crown", 64, "#ffd27a") + '</div><div class="tale-banner">Victory!</div>' +
           '<div class="tale-stars">' + [0, 1, 2].map(i => '<span class="tstar' + (i < stars ? " on" : "") + '">★</span>').join("") + '</div>' +
           '<div class="tale-loot"><span class="tl-xp">' + ART.svg("star-swirl", 26, "#9cdc8a") + '<b data-to="' + st.xp + '">0</b><small>XP</small></span><span class="tl-gold">' + ART.svg("two-coins", 26, "#ffd27a") + '<b data-to="' + st.gold + '">0</b><small>gold</small></span></div>' +
+          (window.STORY ? '<div class="tale-chapter"></div>' : "") +
           '<div class="tale-final">' + portrait(PARTY.find(p => p.id === finalWho), 30) + '<span><small>Final blow</small><b></b></span><i>' + ART.attack(finalWho, 30) + '</i></div>' +
           '<div class="tale-next">' +
             '<div class="tn-head"><span class="eyebrow"></span></div>' +
@@ -1451,6 +1497,15 @@
       '</div>';
     el.querySelector(".tale-top b").textContent = r.monster;
     el.querySelector(".tale-final b").textContent = nm(finalWho);
+    const chBox = el.querySelector(".tale-chapter"), sLog = window.STORY ? storyLog(k) : null, pg = sLog ? storyPage(sLog.wins, r.monster) : null;
+    if (chBox && pg) {
+      chBox.style.setProperty("--sc", pg.color);
+      chBox.innerHTML = '<div class="tc-head"><span class="tc-emblem">' + ART.svg(pg.icon, 34, pg.color) + '</span><div><small></small><b></b></div></div>' + storyDots(pg, true) + '<p class="tc-text"></p>' + (pg.last ? '<div class="tc-done">' + (pg.finale ? "📖 The end of book one" : "Chapter complete!") + '</div>' : "");
+      chBox.querySelector("small").textContent = (pg.book === 1 ? "Chapter " + pg.chapter : "Chronicles") + " · page " + pg.page + " of " + pg.of;
+      chBox.querySelector("b").textContent = pg.title;
+      chBox.dataset.text = pg.text;
+      if (pg.last) chBox.classList.add("complete");
+    }
     el.querySelector(".tn-head .eyebrow").textContent = "Tomorrow · " + tm.day;
     el.querySelector(".tn-name").textContent = tm.tr.monster;
     const chips = el.querySelector(".tn-chips");
@@ -1511,6 +1566,8 @@
       const win = el.querySelector(".tale-win"); win.hidden = false; win.classList.toggle("instant", skip);
       sfx("fanfare");
       if (!skip) confettiBurst();
+      const tc = el.querySelector(".tale-chapter .tc-text"), full = tc ? tc.parentNode.dataset.text : "";
+      if (tc) { if (skip) tc.textContent = full; else setTimeout(() => { let i = 0; const tick = () => { if (!alive()) return; i = Math.min(full.length, i + 2); tc.textContent = full.slice(0, i); if (i < full.length) setTimeout(tick, 28); else if (tc.parentNode.classList.contains("complete")) { sfx("star", 3); setTimeout(confettiBurst, 200); } }; tick(); }, 2100); }
       // stars, then loot counting up
       el.querySelectorAll(".tstar").forEach((t, i) => setTimeout(() => { t.classList.add("pop"); if (t.classList.contains("on")) sfx("star", i); }, skip ? 0 : 500 + i * 260));
       setTimeout(() => sfx("coins"), skip ? 0 : 1300);
