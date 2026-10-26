@@ -381,6 +381,23 @@
 <script src="tips.js"></script>
 <script src="app.js"></script>
 <script src="dm.js"></script>
-<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script>
+<script>
+if ("serviceWorker" in navigator) {
+  // pick up new versions by themselves: check whenever the app comes back to the front,
+  // and reload once the new version has taken over (unless you're typing)
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+  }).catch(() => {});
+  let reloading = false;
+  const reloadSoon = () => {
+    if (reloading) return;
+    const typing = document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) && document.activeElement.value;
+    if (document.visibilityState !== "visible" || typing) { document.addEventListener("visibilitychange", reloadSoon, { once: true }); return; }
+    reloading = true; location.reload();
+  };
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController) reloadSoon(); });
+}
+</script>
 </body>
 </html>
