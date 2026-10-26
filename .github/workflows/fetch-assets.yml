@@ -1,0 +1,43 @@
+name: Fetch free assets
+
+# Downloads CC0 sound packs from kenney.nl onto the "assets-src" branch,
+# so the app's sounds can be picked from them. Run by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      packs:
+        description: "Kenney asset page names, space separated"
+        required: false
+        default: "rpg-audio impact-sounds interface-sounds"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download packs
+        run: |
+          set -e
+          mkdir -p /tmp/out
+          for p in ${{ inputs.packs }}; do
+            url=$(curl -sL "https://kenney.nl/assets/$p" | grep -oE "https://kenney.nl/media/pages/assets/$p/[^\"']+\.zip" | head -1)
+            if [ -z "$url" ]; then echo "::warning::No download link found for $p"; continue; fi
+            curl -sL "$url" -o "/tmp/$p.zip"
+            mkdir -p "/tmp/out/$p" && unzip -q -o "/tmp/$p.zip" -d "/tmp/out/$p"
+            n=$(find "/tmp/out/$p" -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' \) | wc -l)
+            echo "::notice title=$p::$n sound files"
+          done
+          find /tmp/out -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' -o -iname 'license*' \) | sed 's|/tmp/out/||' | sort > /tmp/out/LIST.txt
+          wc -l /tmp/out/LIST.txt
+      - name: Save to the assets-src branch
+        run: |
+          set -e
+          git config user.name "assets-bot"; git config user.email "assets-bot@users.noreply.github.com"
+          git checkout --orphan assets-src
+          git rm -rq --cached . && find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          mkdir -p kenney && cd /tmp/out && find . -type f \( -name '*.ogg' -o -name '*.mp3' -o -name '*.wav' -o -iname 'license*' -o -name 'LIST.txt' \) -exec cp --parents {} "$GITHUB_WORKSPACE/kenney/" \;
+          cd "$GITHUB_WORKSPACE" && git add kenney && git commit -qm "Kenney CC0 sound packs (source for app sounds)" && git push -qf origin assets-src
