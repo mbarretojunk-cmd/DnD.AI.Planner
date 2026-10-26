@@ -622,6 +622,7 @@
   }
   function memberName(group) { const p = PARTY.find(x => x.id === GROUPS[group].member); return p ? p.name : ""; }
   function foeIcon(name) {
+    if (window.ART) return '<span class="foe-art" style="--mc:' + ART.monsterColor(name) + '">' + ART.monster(name, 34) + '</span>';
     const h = hash(name); const eyes = 2 + (h % 2);
     const tints = ["var(--hurt)", "var(--rogue)", "var(--hobby)", "var(--house)"];
     let s = '<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">';
@@ -1160,7 +1161,7 @@
   function toggleDay(hid, k) {
     if (!ready()) return;
     const cur = Object.assign({}, (days[k] && days[k].done) || {});
-    if (cur[hid]) delete cur[hid]; else { cur[hid] = true; if (k === todayKey()) lastHit = Date.now(); }
+    if (cur[hid]) delete cur[hid]; else { cur[hid] = true; if (k === todayKey()) { lastHit = Date.now(); sfx("tick"); } }
     skip = 0; writeDay(k, { done: cur });
     if (lastHit && Date.now() - lastHit < 100) setTimeout(() => { if (tab === "tonight") renderTonight(); }, 1700);
   }
@@ -1378,20 +1379,35 @@
     const cheer = w === 6 ? "Saturday: one chores block in the morning, then the day is yours. Rest well." : w === 0 ? "Sunday: lunch prep day. Cook once, eat well all week." : w === 5 ? "Friday's an easy one. You've earned a gentle night." : pick(["Rest well. The party will be ready at 18:30.", "Sleep well, recover your strength. Tomorrow we ride again.", "Enjoy your free time. You've earned every minute of it."], t);
     return { t, tr, day, plan, cheer };
   }
-  const HIT_FX = { familiar: "🐾", fighter: "⚔️", cleric: "✨", wizard: "🔮", rogue: "🗡️" };
   let taleRun = 0, taleAudio = null;
-  function sfx(kind, n) {
+  const SFX_FILES = ["slash", "dagger", "claw", "bell", "magic", "crit", "boom", "coins", "draw", "star", "tick"];
+  const HIT_SOUND = { familiar: "claw", fighter: "slash", cleric: "bell", wizard: "magic", rogue: "dagger" };
+  const sfxBuf = {}; let sfxLoading = null;
+  function soundOn() { try { return localStorage.getItem("eah-sound") !== "0"; } catch (e) { return true; } }
+  function audioCtx() {
+    const A = window.AudioContext || window.webkitAudioContext; if (!A) return null;
+    taleAudio = taleAudio || new A(); if (taleAudio.state === "suspended") taleAudio.resume().catch(() => {});
+    if (!sfxLoading) sfxLoading = Promise.all(SFX_FILES.map(n => fetch("sfx/" + n + ".ogg").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => taleAudio.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[n] = buf; }).catch(() => {})));
+    return taleAudio;
+  }
+  function play(name, vol, rate, delay) {
+    const ctx = audioCtx(); if (!ctx || ctx.state !== "running" || !sfxBuf[name]) return false;
+    const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = sfxBuf[name]; src.playbackRate.value = rate || 1; g.gain.value = vol == null ? 0.8 : vol;
+    src.connect(g); g.connect(ctx.destination); src.start(ctx.currentTime + (delay || 0)); return true;
+  }
+  function sfx(kind, n, who) {
+    if (!soundOn()) return;
     try {
-      const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
-      taleAudio = taleAudio || new A(); const ctx = taleAudio; if (ctx.state === "suspended") ctx.resume();
-      if (ctx.state !== "running") return;
+      const ctx = audioCtx(); if (!ctx || ctx.state !== "running") return;
       const t0 = ctx.currentTime, tone = (f, at, d, type, vol) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type || "square"; o.frequency.setValueAtTime(f, t0 + at); g.gain.setValueAtTime(vol || 0.06, t0 + at); g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + d); o.connect(g); g.connect(ctx.destination); o.start(t0 + at); o.stop(t0 + at + d + 0.02); };
-      if (kind === "hit") { tone(320 + 60 * (n || 0), 0, 0.09, "square", 0.05); tone(160 + 30 * (n || 0), 0.03, 0.1, "triangle", 0.06); }
-      if (kind === "crit") { tone(880, 0, 0.08, "square", 0.05); tone(1320, 0.06, 0.12, "square", 0.05); }
-      if (kind === "boom") { const len = 0.5, buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2); const src = ctx.createBufferSource(), g = ctx.createGain(); g.gain.value = 0.25; src.buffer = buf; src.connect(g); g.connect(ctx.destination); src.start(t0); }
-      if (kind === "fanfare") [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.13, i === 3 ? 0.5 : 0.16, "triangle", 0.08));
-      if (kind === "star") tone(1200 + 200 * (n || 0), 0, 0.15, "sine", 0.07);
-      if (kind === "coin") tone(1568, 0, 0.06, "square", 0.03);
+      if (kind === "hit") { if (!play(HIT_SOUND[who] || "slash", 0.75, 0.95 + 0.04 * ((n || 0) % 4))) { tone(320 + 60 * (n || 0), 0, 0.09, "square", 0.05); tone(160 + 30 * (n || 0), 0.03, 0.1, "triangle", 0.06); } }
+      if (kind === "crit") { if (!play("crit", 0.8)) { tone(880, 0, 0.08, "square", 0.05); tone(1320, 0.06, 0.12, "square", 0.05); } play("coins", 0.35, 1.2, 0.08); }
+      if (kind === "draw") play("draw", 0.6);
+      if (kind === "boom") { play("boom", 1, 0.6); const len = 0.6, buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5); const src = ctx.createBufferSource(), g = ctx.createGain(); g.gain.value = 0.3; src.buffer = buf; src.connect(g); g.connect(ctx.destination); src.start(t0); }
+      if (kind === "fanfare") [523, 659, 784, 1047].forEach((f, i) => { tone(f, i * 0.13, i === 3 ? 0.55 : 0.16, "triangle", 0.09); tone(f / 2, i * 0.13, i === 3 ? 0.55 : 0.16, "sine", 0.05); });
+      if (kind === "star") { if (!play("star", 0.7, 1 + 0.15 * (n || 0))) tone(1200 + 200 * (n || 0), 0, 0.15, "sine", 0.07); }
+      if (kind === "coins") play("coins", 0.7);
+      if (kind === "tick") play("tick", 0.45);
     } catch (e) {}
   }
   function openTale(k) {
@@ -1416,17 +1432,17 @@
       '<div class="tale-inner">' +
         '<div class="tale-top"><span class="eyebrow">Tonight’s fight</span><b></b></div>' +
         '<div class="arena">' +
-          '<div class="tfoe"><div class="tfoe-body"><img src="icons/monsters/' + slugOf(r.monster) + '.png" alt=""></div><div class="tfoe-hp"><span></span></div></div>' +
+          '<div class="tfoe" style="--mc:' + ART.monsterColor(r.monster) + '"><div class="tfoe-body"><span class="tfoe-ring"></span>' + ART.monster(r.monster, 112, "tfoe-art") + '</div><div class="tfoe-hp"><span></span></div></div>' +
           '<div class="tparty">' + heroes.map(p => '<span class="thero" data-id="' + p.id + '">' + portrait(p, 54) + '</span>').join("") + '</div>' +
         '</div>' +
         '<div class="tale-win" hidden>' +
-          '<div class="tale-banner">Victory!</div>' +
+          '<div class="tale-crown">' + ART.svg("laurel-crown", 64, "#ffd27a") + '</div><div class="tale-banner">Victory!</div>' +
           '<div class="tale-stars">' + [0, 1, 2].map(i => '<span class="tstar' + (i < stars ? " on" : "") + '">★</span>').join("") + '</div>' +
-          '<div class="tale-loot"><span class="tl-xp">' + ICON.star + '<b data-to="' + st.xp + '">0</b><small>XP</small></span><span class="tl-gold">' + ICON.coin + '<b data-to="' + st.gold + '">0</b><small>gold</small></span></div>' +
-          '<div class="tale-final">' + portrait(PARTY.find(p => p.id === finalWho), 30) + '<span><small>Final blow</small><b></b></span><i>' + (HIT_FX[finalWho] || "⚔️") + '</i></div>' +
+          '<div class="tale-loot"><span class="tl-xp">' + ART.svg("star-swirl", 26, "#9cdc8a") + '<b data-to="' + st.xp + '">0</b><small>XP</small></span><span class="tl-gold">' + ART.svg("two-coins", 26, "#ffd27a") + '<b data-to="' + st.gold + '">0</b><small>gold</small></span></div>' +
+          '<div class="tale-final">' + portrait(PARTY.find(p => p.id === finalWho), 30) + '<span><small>Final blow</small><b></b></span><i>' + ART.attack(finalWho, 30) + '</i></div>' +
           '<div class="tale-next">' +
             '<div class="tn-head"><span class="eyebrow"></span></div>' +
-            '<div class="tn-body"><img class="tn-foe" src="icons/monsters/' + slugOf(tm.tr.monster) + '.png" alt=""><div><b class="tn-name"></b><div class="swords tn-swords">' + tomorrowSwords + '</div><div class="tn-chips"></div></div></div>' +
+            '<div class="tn-body"><span class="tn-foe" style="--mc:' + ART.monsterColor(tm.tr.monster) + '">' + ART.monster(tm.tr.monster, 56) + '</span><div><b class="tn-name"></b><div class="swords tn-swords">' + tomorrowSwords + '</div><div class="tn-chips"></div></div></div>' +
             '<p class="tale-cheer"></p>' +
           '</div>' +
           '<div class="tale-actions"><button type="button" class="btn-main" id="taleClose">On to free time</button><button type="button" class="btn-quiet" id="taleDm" hidden>📜 Let the DM tell the story</button><div class="tale-story"></div></div>' +
@@ -1440,8 +1456,6 @@
     const chips = el.querySelector(".tn-chips");
     (days[tm.t] && days[tm.t].rest ? ["rest day 💤"] : isLab(tm.t) ? ["lab day 🧪"] : special).slice(0, 3).forEach(t => { const c = document.createElement("span"); c.textContent = t; chips.appendChild(c); });
     el.querySelector(".tale-cheer").textContent = tm.cheer.split(". ").slice(-1)[0];
-    const fi = el.querySelector(".tfoe img"); fi.onerror = () => { const sp = document.createElement("span"); sp.className = "tfoe-svg"; sp.innerHTML = foeIcon(r.monster); fi.replaceWith(sp); };
-    el.querySelector(".tn-foe").onerror = e => { e.target.remove(); };
     el.hidden = false; document.body.style.overflow = "hidden"; el.scrollTop = 0;
     $("taleClose").onclick = closeTale;
     const key = window.DM && window.DM.get && window.DM.get(window.DM.keys.KEY);
@@ -1456,6 +1470,7 @@
     const fx = (cls, html, x, y) => { const d = document.createElement("span"); d.className = cls; d.innerHTML = html; d.style.left = x + "px"; d.style.top = y + "px"; arena.appendChild(d); return d; };
     const anim = (node, frames, opts) => (node.animate && !skip) ? node.animate(frames, opts).finished.catch(() => {}) : Promise.resolve();
     (async () => {
+      sfx("draw");
       await wait(500);
       let left = r.need;
       for (let i = 0; i < strikes.length && alive(); i++) {
@@ -1463,10 +1478,10 @@
         const s = strikes[i], crit = i >= r.need, hero = el.querySelector('.thero[data-id="' + s.who + '"]');
         const from = hero ? center(hero) : { x: arena.clientWidth / 2, y: arena.clientHeight }, to = center(body);
         if (hero) anim(hero, [{ transform: "none" }, { transform: "translateY(-16px) scale(1.18)" }, { transform: "none" }], { duration: 360, easing: "ease-out" });
-        const p = fx("tproj", HIT_FX[s.who] || "⚔️", from.x, from.y);
+        const p = fx("tproj", ART.attack(s.who, 44), from.x, from.y); p.style.setProperty("--pc", ART.attackColor(s.who));
         await anim(p, [{ transform: "translate(-50%,-50%) scale(.5) rotate(0)" }, { transform: "translate(calc(-50% + " + (to.x - from.x) + "px), calc(-50% + " + (to.y - from.y) + "px)) scale(1.4) rotate(" + (crit ? 720 : 360) + "deg)" }], { duration: 340, easing: "cubic-bezier(.3,.6,.4,1)" });
         p.remove(); if (!alive()) return;
-        sfx(crit ? "crit" : "hit", i % 6); try { if (navigator.vibrate) navigator.vibrate(crit ? [20, 30, 20] : 18); } catch (e) {}
+        sfx(crit ? "crit" : "hit", i, s.who); try { if (navigator.vibrate) navigator.vibrate(crit ? [20, 30, 20] : 18); } catch (e) {}
         anim(body, [{ transform: "translateX(0)", filter: "brightness(2.6)" }, { transform: "translateX(-10px) rotate(-5deg)" }, { transform: "translateX(8px) rotate(4deg)" }, { transform: "none", filter: "none" }], { duration: 300 });
         if (!crit) { left--; hp.style.width = Math.max(0, left / r.need * 100) + "%"; }
         const dn = fx("tdmg" + (crit ? " crit" : ""), (crit ? "CRIT +5g" : "−10") + "<small></small>", to.x + ((i % 3) - 1) * 34, to.y - 40);
@@ -1480,6 +1495,8 @@
       sfx("boom"); try { if (navigator.vibrate) navigator.vibrate([60, 40, 120]); } catch (e) {}
       const c = center(body);
       if (!skip) {
+        const flash = fx("tflash", ART.svg("explosion-rays", 260, "#ffd27a"), c.x, c.y);
+        anim(flash, [{ transform: "translate(-50%,-50%) scale(.2) rotate(0)", opacity: 0 }, { transform: "translate(-50%,-50%) scale(1.1) rotate(30deg)", opacity: 1, offset: .3 }, { transform: "translate(-50%,-50%) scale(1.5) rotate(60deg)", opacity: 0 }], { duration: 900, easing: "ease-out" }).then(() => flash.remove());
         await anim(body, [{ transform: "scale(1)", filter: "brightness(1)" }, { transform: "scale(1.25)", filter: "brightness(3) saturate(0)" }], { duration: 260, easing: "ease-in" });
         for (let i = 0; i < 22; i++) {
           const bit = fx("tbit", "", c.x, c.y), ang = (i / 22) * Math.PI * 2 + (hash(k + i) % 10) / 10, dist = 70 + (hash(k + "b" + i) % 90);
@@ -1490,18 +1507,22 @@
       foe.classList.add("gone");
       await wait(450); if (!alive()) return;
       $("taleSkip").hidden = true; arena.classList.add("done");
+      await wait(420); if (!alive()) return;
       const win = el.querySelector(".tale-win"); win.hidden = false; win.classList.toggle("instant", skip);
       sfx("fanfare");
-      if (!skip) confettiBurst(el);
+      if (!skip) confettiBurst();
       // stars, then loot counting up
       el.querySelectorAll(".tstar").forEach((t, i) => setTimeout(() => { t.classList.add("pop"); if (t.classList.contains("on")) sfx("star", i); }, skip ? 0 : 500 + i * 260));
-      setTimeout(() => el.querySelectorAll(".tale-loot b").forEach(b => { const to = Number(b.dataset.to), t0 = performance.now(), dur = skip ? 1 : 1000; let last = 0; const step = now => { const f = Math.min(1, (now - t0) / dur); const v = Math.round(to * f); b.textContent = v; if (b.parentNode.classList.contains("tl-gold") && v !== last && v % 3 === 0) sfx("coin"); last = v; if (f < 1 && alive()) requestAnimationFrame(step); }; requestAnimationFrame(step); }), skip ? 0 : 1300);
+      setTimeout(() => sfx("coins"), skip ? 0 : 1300);
+      setTimeout(() => el.querySelectorAll(".tale-loot b").forEach(b => { const to = Number(b.dataset.to), t0 = performance.now(), dur = skip ? 1 : 1000; let last = 0; const step = now => { const f = Math.min(1, (now - t0) / dur); const v = Math.round(to * f); b.textContent = v; last = v; if (f < 1 && alive()) requestAnimationFrame(step); }; requestAnimationFrame(step); }), skip ? 0 : 1300);
     })();
   }
-  function confettiBurst(el) {
-    const box = document.createElement("div"); box.className = "tale-confetti"; box.setAttribute("aria-hidden", "true");
-    for (let i = 0; i < 46; i++) { const c = document.createElement("i"); const coin = i % 7 === 0; c.className = coin ? "coin" : ""; c.style.cssText = "--x:" + (Math.random() * 100) + ";--d:" + Math.round(Math.random() * 700) + "ms;--r:" + Math.round(Math.random() * 360) + "deg;--c:" + ["#ffd27a", "#e8604c", "#9b7bd6", "#7cc28a", "#6fb3e0", "#fff"][i % 6] + ";--dur:" + (2.2 + Math.random() * 1.6) + "s"; box.appendChild(c); }
-    el.appendChild(box); setTimeout(() => box.remove(), 5000);
+  function confettiBurst() {
+    const c = window.confetti; if (!c) return;
+    const colors = ["#ffd27a", "#e8604c", "#9b7bd6", "#7cc28a", "#6fb3e0", "#ffffff"], z = 70;
+    c({ particleCount: 90, spread: 80, startVelocity: 48, origin: { y: 0.32 }, colors, shapes: ["square", "circle", "star"], scalar: 1.1, zIndex: z });
+    setTimeout(() => { c({ particleCount: 50, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors, zIndex: z }); c({ particleCount: 50, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors, zIndex: z }); }, 350);
+    setTimeout(() => c({ particleCount: 40, spread: 120, startVelocity: 25, gravity: 0.6, origin: { y: 0.15 }, colors: ["#ffd27a", "#f5b942"], shapes: ["circle"], scalar: 1.5, zIndex: z }), 900);
   }
   function closeTale() { taleRun++; $("tale").hidden = true; $("tale").innerHTML = ""; document.body.style.overflow = ""; }
   async function dmTale(k, st, tm, key) {
@@ -1603,6 +1624,8 @@
     clearInterval(timerTick); timerTick = null;
     hideTimer();
   }
+  try { $("soundOn").checked = soundOn(); } catch (e) {}
+  $("soundOn").onchange = e => { try { localStorage.setItem("eah-sound", e.target.checked ? "1" : "0"); } catch (x) {} if (e.target.checked) { audioCtx(); setTimeout(() => sfx("tick"), 300); } };
   $("focusPause").onclick = () => {
     if (!timer) return;
     if (timer.paused != null) { timer.endAt = Date.now() + timer.paused; timer.paused = null; } else timer.paused = timerLeft();

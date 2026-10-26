@@ -1,7 +1,7 @@
 // Evenings at Home service worker: keeps the app shell available offline.
 // Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = "eah-v20";
-const SHELL = ["./", "index.html", "styles.css", "app.js", "store.js", "dm.js", "config.js", "tips.js", "starter.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
+const VERSION = "eah-v21";
+const SHELL = ["./", "index.html", "styles.css", "app.js", "store.js", "dm.js", "config.js", "tips.js", "art.js", "vendor/confetti.js", "starter.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
