@@ -23,7 +23,11 @@
     rogue: '<circle cx="32" cy="32" r="32" fill="var(--sunk)"/><path d="M8 64c2-13 11-20 24-20s22 7 24 20z" fill="var(--rogue)"/><path d="M17 40C15 18 24 11 32 11s17 7 15 29c-4 4-26 4-30 0z" fill="var(--rogue)"/><ellipse cx="32" cy="32" rx="9" ry="10" fill="var(--skin2)"/><path d="M22 27c3-5 17-5 20 0-3-2-17-2-20 0z" fill="var(--feature)" opacity=".55"/><path d="M26.5 30.5q1.5-1.4 3 0M34.5 30.5q1.5-1.4 3 0" fill="none" stroke="var(--feature)" stroke-width="1.6" stroke-linecap="round"/><path d="M24 37q8 9 16 0v6q-8 4-16 0z" fill="var(--feature)" opacity=".7"/><path d="M48 46l6-12" stroke="var(--steel)" stroke-width="2.5" stroke-linecap="round"/><path d="M46 49l5-2" stroke="var(--feature)" stroke-width="2.5" stroke-linecap="round"/>'
   };
   function applyNames() { const n = (game && game.names) || {}; PARTY = PARTY_BASE.map(p => Object.assign({}, p, { name: (typeof n[p.id] === "string" && n[p.id].trim()) ? n[p.id].trim().slice(0, 30) : p.name })); }
-  function portrait(p, size) { return '<svg class="portrait"' + (size ? ' style="width:' + size + 'px;height:' + size + 'px"' : "") + ' viewBox="0 0 64 64" role="img" aria-label="' + esc(p.name) + ', ' + p.cls + '"><defs><clipPath id="cp-' + p.id + (size || "") + '"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#cp-' + p.id + (size || "") + ')">' + PORTRAITS[p.id] + '</g></svg>'; }
+  function portrait(p, size) {
+    if (window.ART && ART.pixel(p.id)) return '<span class="portrait pix"' + (size ? ' style="width:' + size + 'px;height:' + size + 'px"' : "") + ' role="img" aria-label="' + esc(p.name) + ', ' + p.cls + '"><img src="' + ART.pixel(p.id) + '" alt=""></span>';
+    return portraitSvg(p, size);
+  }
+  function portraitSvg(p, size) { return '<svg class="portrait"' + (size ? ' style="width:' + size + 'px;height:' + size + 'px"' : "") + ' viewBox="0 0 64 64" role="img" aria-label="' + esc(p.name) + ', ' + p.cls + '"><defs><clipPath id="cp-' + p.id + (size || "") + '"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#cp-' + p.id + (size || "") + ')">' + PORTRAITS[p.id] + '</g></svg>'; }
   const MONSTERS = [
     ["Scroll Leech", "Feeds on endless feeds."], ["Couch Mimic", "Looks like a comfy seat. Isn't."],
     ["Dish Hydra", "Two plates grow back for every one."], ["Laundry Golem", "Built from last week's socks."],

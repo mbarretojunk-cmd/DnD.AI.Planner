@@ -2,6 +2,7 @@
  * Game art for Evenings at Home.
  * Icons from game-icons.net by Lorc, Delapouite and contributors, licensed CC BY 3.0
  * (https://creativecommons.org/licenses/by/3.0/). Shapes unchanged; colours applied in the app.
+ * Party pixel portraits based on Kenney "Tiny Dungeon" (CC0, kenney.nl).
  */
 (function () {
   "use strict";
@@ -18,8 +19,11 @@
     const b = I[name]; if (!b) return "";
     return '<svg class="gi' + (cls ? " " + cls : "") + '" viewBox="0 0 512 512" width="' + size + '" height="' + size + '" style="color:' + (color || "currentColor") + '" aria-hidden="true">' + b + '</svg>';
   }
+  // party portraits: 16x16 pixel art from Kenney's Tiny Dungeon (CC0), recoloured; Sigma drawn for this app
+  const PIXEL = {"cleric": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABIklEQVR42mNgoBAwogvYqxn+x6fh4K3zKHqYSNGMTQ0jNolFJSYMYhqyKBpf3XjMENdzBsMlTOg2YNPMwMDAIKYhy7CoxARDHMOAO5ee4nQ+NjkmSmOBBV3AKsyCgYGBgUE/8xADAwMDw8Xpdihshl3r8bugvnILXPF0RzaG+sotDNMd2RguTreDyxGMBXNRVriCxnYfuMaTr39jjwVkzY1LVzO4G4pguAgmh24hI7pmBgYGhr8L8xiY4yehOBVZrD46FDMQd8wJZGD4voxhyk0jhtfn3zC4M+ShGLDz/BsGUf0bDDnq5xh2zAlk8EhZjz0Qt3TXongBBtwNRRi2dNdiBiK29I8ciMgAORDhXjh46zyGIdhcwMDAwHBy13OMnAkApYtsQ8mGth8AAAAASUVORK5CYII=", "fighter": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABX0lEQVR42mNgoBAwogvYqxn+x6X44K3zjHgNwKcZl0GM2DT7lDYzMDAwMJgaaDAwMDAwnL5wg4GBgYFhS3cthiFM6KbDNCNrhBmELAcDTPicju4CbN5FccH0FnkGb/45DAwMDAxh/zcyKJ7vZFA83wmX9+afwzC9RR7TBTAgpaYB1yymIQvHOernMNTAAAu606TUNBjYP3Ex6GceYmBgYGC4ON0Oyj7EkLrUBMMrGAY8u3WDQVHCiOHidDsGBgYGhlc3HsPZDJ8YGH7yfcPthWe3IIE15aYRXExMQxbOvv/iHFwN3ADkGFCUMGJYMPEZ3GZkPOUmRE5RwgglJhhhBuyYEwiXqK/cAme7G4ow7Dz/hoGBgYGhsd0HLu6Rsh57GHikrGeoc5OE88/pZzG4M0yDy+2YE8hwbNUJRF7AlojMRVmx5oGTr38z1LlJMjTteo4IA/Qchq7Z3VAEb6YCAL0mf8tMtBKlAAAAAElFTkSuQmCC", "familiar": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA2ElEQVR42q2TMQ6DMAxFH4gpB0GscAEu0IEFIfUScBRYmDp0RSzMbJyAFTFyCFY6BSVpglBVT4m//e0fO/AvS8P4+Dk2DeOjbd/HHRIz1lfBoiovO0nD+CiqUvMFZlBRlVA3t+UENqdZ5co0Ccuy4LqbmJUgiiK2ZGRLxvMuTTy30+8kkPZ6jNz1e67XBcj2HYBBiC+sqxumdfZ8gGmdva5uAMjz7AwahNCSJSaTrRL6ftASVEIV0ySYK+oao+xSVrd2IJNtI7QR+64FUUeoni8l3PmVavsAHzlNWyCRsZ9sAAAAAElFTkSuQmCC", "wizard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABLElEQVR42mNkQAL2aob/GbCAg7fOMzLgAIyENBMyiBFdM58HqjmfdjDiNYQJmcPn8R9DA5/HfxRD7dUM/yNbyITPNnSDsIUXC7oizwAT3IEQwMCwfcMZFItQDNA8y8Zw5sIFDH1TW/wYGBgYGLJrNjFo/mVjOMnwG7sBb5j/wdlH3gowXJxuB+frZx5iuDjdjyG7ZhMDzkBEtxEb6Ei3IGwAAwMD3PZXNx6j8CtmniBsALIzxTRk4ez6yi0YapmQ4xTZ6a9uPEbB9ZVbGK4b/0JRY69m+J8RZsCOOYEoLnht8IeBgYGBwTPAhGH7hjMMDAwMDKtCguBqPFLWY8YCTEJZghmeHs40XGDwbDCByyFbxMDAwMCILROhpzp8KZUJPXOga8aXMg/eOs8IAMFAeQfV9yURAAAAAElFTkSuQmCC", "rogue": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABRElEQVR42mNkwAHs1Qz/o4sdvHWeEV2MkRiN+AxhxKe5zk0Szm7a9RyrIUzYNJuLsqJoholhU8uE7kRzUVYGd0MRDKe7G4qgGAIDLBgCImEMex9D2C7u3nDxPTu3MrCIMDAwvF6K3wBn2X0MVmEWDAwMDAyvbvTBxS2LZRkYGBgYPFJQ1WN4AaZZP/MQg5iGLBzrZx7CGisYBry68RhnFGKTw/BCXM8ZhkUlDAwXp9sx1FdugYvvztdnuHPpKQPWhIQcLdaa0Qx/3qxCCf2d59/AA/jo9aUo6YERWXOdmyTD3sdODAwMDCgKYQbDAhk5UbEga1bRk2ZgYNjHsPexEzwhwQyEaVbRk2aoQ0qZKGFw59JThqZdzxmsNREanWX3wQ1q2vWcoQ49DLBlHliKO/n6N1Y+SjRiy6LuhiIoyRmdjxyIAAs5c2xFh1WBAAAAAElFTkSuQmCC"};
   window.ART = {
     svg,
+    pixel: id => PIXEL[id] || "",
     monster: (name, size, cls) => { const m = MONSTER[name] || ["imp-laugh", "#e8604c"]; return svg(m[0], size, m[1], cls); },
     monsterColor: name => (MONSTER[name] || [0, "#e8604c"])[1],
     attack: (who, size) => { const a = ATTACK[who] || ATTACK.fighter; return svg(a[0], size, a[1]); },

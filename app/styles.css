@@ -516,3 +516,7 @@ details.mlog summary { padding: 4px 0; font-family: var(--body); font-weight: 70
 .tc-text { margin: 0; min-height: 3.2em; font-family: var(--body); font-size: 1.02rem; line-height: 1.5; font-style: italic; color: #f3efe4; }
 .tc-done { font-family: var(--display); font-weight: 800; color: var(--sc); letter-spacing: .06em; text-transform: uppercase; animation: pop .6s 3.4s cubic-bezier(.2,1.6,.4,1) backwards; text-shadow: 0 0 16px var(--sc); }
 @keyframes dotpop { 0% { transform: scale(0); } 60% { transform: scale(1.8); box-shadow: 0 0 0 8px transparent; } 100% { transform: scale(1); } }
+
+/* pixel portraits */
+.portrait.pix { display: inline-grid; place-items: end center; overflow: hidden; background: radial-gradient(circle at 50% 38%, #46518a, #1c2340 75%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.portrait.pix img { width: 84%; height: 84%; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
