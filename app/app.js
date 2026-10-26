@@ -54,7 +54,7 @@
   let db = null, canWrite = true;
   let habitsAll = [];       // includes archived
   const days = {};          // date -> {done:{}}
-  let recipes = [], plans = {}, quests = [], rewards = [], purchases = [];
+  let recipes = [], plans = {}, quests = [], rewards = [], purchases = [], shop = { items: [], recent: [] };
   let game = { startDate: null };
   let viewDate = "";
   let skip = 0;
@@ -274,7 +274,9 @@
     renderParty();
     if (tab === "tonight") renderTonight();
     if (tab === "party") renderPartyTab();
-    if (tab === "lunch") renderLunch();
+    if (tab === "lunch" || tab === "shop") renderLunch();
+    if (tab === "shop") renderShop();
+    renderShopBadge();
     if (tab === "quests") renderQuests();
   }
 
@@ -439,9 +441,10 @@
           b.querySelector(".tname").textContent = text;
           b.onclick = () => { const p = clonePlan(prepWeek); p.steps[id] = todayKey(); savePlan(p); };
           sec.appendChild(b);
+          if (id === "shop") sec.appendChild(mkBtn("Open the shopping list", "btn-small", () => setTab("shop")));
           if (id === "cook") { const lc = (prepPlan.recipes || []).map(r => ({ rc: recipes.find(x => x.id === r.id), kind: "lunch", count: r.portions, week: prepWeek })).filter(o => o.rc); if (lc.length) sec.appendChild(recipeChips(lc)); }
         });
-        const go = mkBtn("Open recipes and shopping list", "btn-small", () => setTab("lunch")); sec.appendChild(go);
+        const go = mkBtn("Open recipes", "btn-small", () => setTab("lunch")); sec.appendChild(go);
         box.appendChild(sec);
       }
     }
@@ -748,24 +751,15 @@
       st.append(minus, num, plus); row.append(st, mkBtn("Brew", "btn-small", () => openBrew(rc, "dinner", pd.nights, week))); dl.appendChild(row);
     });
 
-    // shopping list
-    const agg = {};
-    const addIngs = (rc, f) => (rc.ingredients || []).forEach(ing => {
-      const unit = ing.unit || "pcs"; const k = (ing.item || "").toLowerCase().trim() + "|" + unit;
-      if (!agg[k]) agg[k] = { key: k, item: ing.item, unit, qty: 0, aisle: ing.aisle || "Other", staple: !!ing.staple, fresh: false };
-      if (ing.fresh) agg[k].fresh = true;
-      agg[k].qty += (Number(ing.qty) || 0) * f;
-    });
-    plan.recipes.forEach(pr => { const rc = recipes.find(x => x.id === pr.id); if (rc) addIngs(rc, pr.portions / (rc.portions || LUNCHES)); });
-    (plan.dinners || []).forEach(pd => { const rc = recipes.find(x => x.id === pd.id); if (rc) addIngs(rc, pd.nights / (rc.portions || 2)); });
-    const items = Object.values(agg);
-    const extras = (plan.extras || []).map(x => ({ key: "x:" + x.id, item: x.text, unit: "", qty: 0, aisle: "Extras", extra: x.id }));
-    const buy = items.filter(i => !i.staple), staples = items.filter(i => i.staple);
-    const got = plan.got || {};
+    // shopping list (shown in the Shopping section)
+    const { buy, extras, staples, got } = foodShop(week);
+    $("shopFoodTitle").textContent = "Food for the week of " + niceDate(week);
+    $("shopFoodNote").textContent = (plan.recipes.length || (plan.dinners || []).length) ? "From the lunches and dinners picked in Food. Fresh things are marked to buy on Saturday." : "";
+    $("shopJumpCount").textContent = buy.length + extras.length ? buy.concat(extras).filter(i => !got[i.key]).length + " to buy" : "";
+    const sl = $("shopList"); sl.innerHTML = "";
     const gotN = buy.concat(extras).filter(i => got[i.key]).length;
     $("shopCount").textContent = buy.length + extras.length ? gotN + " of " + (buy.length + extras.length) + " in the basket" : "";
-    const sl = $("shopList"); sl.innerHTML = "";
-    if (!buy.length && !extras.length) sl.innerHTML = '<p class="small muted">Your list fills in as soon as you pick lunches and dinners.</p>';
+    if (!buy.length && !extras.length) { sl.innerHTML = '<p class="small muted">This fills in as soon as you pick lunches and dinners in Food.</p>'; const g = mkBtn("Pick this week's food", "btn-small", () => setTab("lunch")); sl.appendChild(g); }
     if (extras.length) {
       const box = document.createElement("div"); box.className = "aisle";
       box.innerHTML = '<span class="eyebrow">Extras</span>';
@@ -836,13 +830,73 @@
       rb.appendChild(div);
     });
   }
+  function foodShop(week) {
+    const agg = {};
+    const addIngs = (rc, f) => (rc.ingredients || []).forEach(ing => {
+      const unit = ing.unit || "pcs"; const k = (ing.item || "").toLowerCase().trim() + "|" + unit;
+      if (!agg[k]) agg[k] = { key: k, item: ing.item, unit, qty: 0, aisle: ing.aisle || "Other", staple: !!ing.staple, fresh: false };
+      if (ing.fresh) agg[k].fresh = true;
+      agg[k].qty += (Number(ing.qty) || 0) * f;
+    });
+    const plan = planOf(week);
+    plan.recipes.forEach(pr => { const rc = recipes.find(x => x.id === pr.id); if (rc) addIngs(rc, pr.portions / (rc.portions || LUNCHES)); });
+    (plan.dinners || []).forEach(pd => { const rc = recipes.find(x => x.id === pd.id); if (rc) addIngs(rc, pd.nights / (rc.portions || 2)); });
+    const items = Object.values(agg);
+    const extras = (plan.extras || []).map(x => ({ key: "x:" + x.id, item: x.text, unit: "", qty: 0, aisle: "Extras", extra: x.id }));
+    const buy = items.filter(i => !i.staple), staples = items.filter(i => i.staple);
+    return { buy, extras, staples, got: planOf(week).got || {} };
+  }
+  /* ================= shopping: household list ================= */
+  const QUICK_ITEMS = ["Cat litter", "Wet cat food", "Dry cat food", "Toilet paper", "Kitchen roll", "Dish soap", "Laundry detergent", "Bin bags", "Olive oil", "Eggs", "Milk", "Coffee"];
+  function saveShop(next) { if (!ready()) return; shop = next; renderAll(); queueSet("shop", "list", Object.assign({}, next, { updatedAt: new Date().toISOString() })); }
+  function cloneShop() { return { items: shop.items.map(i => Object.assign({}, i)), recent: shop.recent.slice() }; }
+  function addShopItem(text) {
+    text = String(text || "").trim().slice(0, 60); if (!text) return;
+    const n = cloneShop(), low = text.toLowerCase();
+    const same = n.items.find(i => i.text.toLowerCase() === low);
+    if (same) same.got = false; else n.items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text, got: false });
+    n.recent = [text].concat(n.recent.filter(r => r.toLowerCase() !== low)).slice(0, 16);
+    saveShop(n);
+  }
+  function shopOpenCount() {
+    const week = prepWeekKey(todayKey()); const f = foodShop(week);
+    return shop.items.filter(i => !i.got).length + f.buy.concat(f.extras).filter(i => !f.got[i.key]).length;
+  }
+  function renderShopBadge() {
+    const n = shopOpenCount(), b = $("shopBadge");
+    b.hidden = !n; b.textContent = n; b.setAttribute("aria-label", n + " to buy");
+  }
+  function renderShop() {
+    const list = $("hhList"); list.innerHTML = "";
+    const open = shop.items.filter(i => !i.got), got = shop.items.filter(i => i.got);
+    $("hhCount").textContent = shop.items.length ? got.length + " of " + shop.items.length + " in the basket" : "";
+    if (!shop.items.length) { const p = document.createElement("p"); p.className = "small muted"; p.textContent = "Nothing on the list. Add an item or tap a quick add below."; list.appendChild(p); }
+    open.concat(got).forEach(i => {
+      const row = document.createElement("div"); row.className = "hh-row";
+      const b = shopRow({ key: i.id, item: i.text, unit: "", qty: 0, extra: null, household: true }, i.got, null);
+      b.onclick = () => { const n = cloneShop(); const it = n.items.find(x => x.id === i.id); if (it) it.got = !it.got; saveShop(n); };
+      const x = mkBtn("×", "btn-small", () => { const n = cloneShop(); n.items = n.items.filter(e => e.id !== i.id); saveShop(n); });
+      x.setAttribute("aria-label", "Remove " + i.text);
+      row.append(b, x); list.appendChild(row);
+    });
+    $("hhClear").hidden = !got.length;
+    $("hhClear").textContent = "Clear " + got.length + " ticked item" + (got.length === 1 ? "" : "s");
+    const onList = new Set(shop.items.filter(i => !i.got).map(i => i.text.toLowerCase()));
+    const seen = new Set(), chips = [];
+    shop.recent.concat(QUICK_ITEMS).forEach(t => { const l = t.toLowerCase(); if (!onList.has(l) && !seen.has(l)) { seen.add(l); chips.push(t); } });
+    const q = $("hhQuick"); q.innerHTML = "";
+    chips.slice(0, 14).forEach(t => { const c = mkBtn(t, "qchip", () => addShopItem(t)); c.setAttribute("aria-label", "Add " + t); q.appendChild(c); });
+  }
+  $("hhClear").onclick = () => { const n = cloneShop(); n.items = n.items.filter(i => !i.got); saveShop(n); };
+  $("goShop").onclick = () => setTab("shop");
+
   function shopRow(i, isGot, week) {
     const b = document.createElement("button"); b.type = "button"; b.className = "shop-item" + (isGot ? " done" : ""); b.style.setProperty("--c", "var(--lamp)"); b.setAttribute("aria-pressed", String(!!isGot));
     b.innerHTML = '<span class="check" style="' + (isGot ? "background:var(--lamp)" : "") + '">' + CHECK.replace('opacity', '') + '</span><span class="si-name"></span><span class="si-qty"></span>';
     b.querySelector("svg").style.opacity = isGot ? 1 : 0;
     b.querySelector(".si-name").textContent = i.item;
     if (i.fresh) { const f = document.createElement("span"); f.className = "fresh"; f.textContent = "buy Sat"; b.querySelector(".si-name").appendChild(f); }
-    b.querySelector(".si-qty").textContent = i.staple || i.extra ? "" : fmtQty(roundCount(i.qty, i.unit), i.unit);
+    b.querySelector(".si-qty").textContent = i.staple || i.extra || i.household ? "" : fmtQty(roundCount(i.qty, i.unit), i.unit);
     b.onclick = () => { const p = clonePlan(week); if (p.got[i.key]) delete p.got[i.key]; else p.got[i.key] = true; savePlan(p); };
     if (i.extra) {
       const wrap = document.createElement("div"); wrap.style.cssText = "display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center";
@@ -1158,8 +1212,7 @@
   $("addExtra").addEventListener("submit", ev => {
     ev.preventDefault(); if (!ready()) return;
     const text = $("exText").value.trim(); if (!text) return;
-    const week = prepWeekKey(todayKey()); const p = clonePlan(week);
-    p.extras.push({ id: Date.now().toString(36), text: text.slice(0, 60) }); savePlan(p); $("exText").value = "";
+    addShopItem(text); $("exText").value = ""; $("exText").focus();
   });
   function parseIngredient(line) {
     let s = line.trim(); if (!s) return null;
@@ -1195,8 +1248,8 @@
   });
 
   /* ================= nav ================= */
-  const TABS = ["tonight", "party", "lunch", "quests", "dm"];
-  const TAB_TITLES = { tonight: "Tonight", party: "Party", lunch: "Food", quests: "Quests", dm: "Dungeon Master" };
+  const TABS = ["tonight", "party", "lunch", "shop", "quests", "dm"];
+  const TAB_TITLES = { tonight: "Tonight", party: "Party", lunch: "Food", shop: "Shopping", quests: "Quests", dm: "Dungeon Master" };
   function setTab(t, fromHash) {
     if (!TABS.includes(t)) t = "tonight";
     tab = t;
@@ -1362,6 +1415,7 @@
     db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); daysLoaded = true; renderAll(); }, err("Check-ins"));
     db.collection("recipes").onSnapshot(s => { recipes = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { name: String(d.data().name || "Untitled") })); renderAll(); }, err("Recipes"));
     db.collection("plans").onSnapshot(s => { const p = {}; s.docs.forEach(d => { const x = d.data(); p[d.id] = { week: d.id, recipes: Array.isArray(x.recipes) ? x.recipes : [], dinners: Array.isArray(x.dinners) ? x.dinners : [], extras: Array.isArray(x.extras) ? x.extras : [], brewed: x.brewed || {}, got: x.got || {}, steps: x.steps || {}, skipped: !!x.skipped }; }); plans = p; renderAll(); }, err("Lunch plans"));
+    db.doc("shop/list").onSnapshot(s => { const x = s.exists ? s.data() : {}; shop = { items: Array.isArray(x.items) ? x.items.filter(i => i && i.id && i.text).map(i => ({ id: String(i.id), text: String(i.text), got: !!i.got })) : [], recent: Array.isArray(x.recent) ? x.recent.map(String).slice(0, 16) : [] }; renderAll(); }, err("Shopping list"));
     db.collection("quests").onSnapshot(s => { quests = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { title: String(d.data().title || "Quest") })); renderAll(); }, err("Quests"));
     db.collection("rewards").onSnapshot(s => { rewards = s.docs.map(d => ({ id: d.id, name: String(d.data().name || "Reward"), cost: Number(d.data().cost) || 0 })); renderAll(); }, err("Rewards"));
     db.collection("purchases").onSnapshot(s => { purchases = s.docs.map(d => Object.assign({ id: d.id }, d.data())); renderAll(); }, err("Purchases"));
