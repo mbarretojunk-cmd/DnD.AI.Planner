@@ -41,7 +41,8 @@ const weekIndex = k => Math.round((parseKey(mondayOf(k)) - parseKey("2026-01-05"
 /* reminder slots: [name, minute of day, applies on weekday?] */
 const SLOTS = [
   ["weekday", 18 * 60 + 45, "wd"], ["weekday", 19 * 60 + 45, "wd"], ["weekday", 20 * 60 + 45, "wd"],
-  ["weekend-morning", 10 * 60 + 45, "we"], ["weekend-evening", 18 * 60 + 45, "we"]
+  ["weekend-morning", 10 * 60 + 45, "we"], ["weekend-evening", 18 * 60 + 45, "we"],
+  ["evening-end", 21 * 60 + 45, "all"]
 ];
 const WINDOW = 55; // GitHub may start the job late; still send if within 55 min of the slot
 
@@ -63,7 +64,7 @@ async function main() {
   if (FORCE) slot = { name: FORCE, at: now.mins, key: FORCE + "-" + Date.now() };
   else {
     for (const [name, at, when] of SLOTS) {
-      if ((when === "wd") === isWeekend) continue;
+      if ((when === "wd" && isWeekend) || (when === "we" && !isWeekend)) continue;
       if (now.mins >= at && now.mins < at + WINDOW) { slot = { name, at, key: now.key + "@" + at }; break; }
     }
   }
@@ -140,6 +141,13 @@ function compose(docs, now, slot) {
     .sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || (a.order || 0) - (b.order || 0));
   const doneCount = mustDone + otherDone;
   const anyOnly = open.length && mustDone >= mustNeed;   // must-dos covered, just needs any task
+  if (slot.name === "evening-end") {
+    const mon = MONSTERS[hash(today) % MONSTERS.length];
+    if (!need) return null;
+    if (hits >= need) return { icon: monsterIcon(mon), title: "Victory over the " + mon + "!", body: "The party rests. Tap to read tonight's tale and meet tomorrow's foe.", url: "./#tale" };
+    const left = need - hits;
+    return { icon: monsterIcon(mon), title: "The " + mon + " still stands", body: left + " more hit" + (left === 1 ? "" : "s") + " before midnight" + (anyOnly ? ": any task will do, even your reading." : ": start with " + label(open[0]).toLowerCase() + ".") };
+  }
   if (anyOnly && slot.name !== "weekend-morning") {
     const left = need - hits;
     const mon = MONSTERS[hash(today) % MONSTERS.length];

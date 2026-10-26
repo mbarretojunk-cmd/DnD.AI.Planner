@@ -1,6 +1,6 @@
 // Evenings at Home service worker: keeps the app shell available offline.
 // Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = "eah-v18";
+const VERSION = "eah-v19";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "store.js", "dm.js", "config.js", "tips.js", "starter.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -28,13 +28,16 @@ self.addEventListener("push", e => {
   let msg = { title: "Evenings at Home", body: "Time for one small thing." };
   try { if (e.data) msg = Object.assign(msg, e.data.json()); } catch (err) { if (e.data) msg.body = e.data.text(); }
   e.waitUntil(self.registration.showNotification(msg.title, {
-    body: msg.body, icon: msg.icon || "icons/icon-192.png", badge: "icons/badge.png", tag: "evenings-nudge", renotify: true, data: { url: "./" }
+    body: msg.body, icon: msg.icon || "icons/icon-192.png", badge: "icons/badge.png", tag: "evenings-nudge", renotify: true, data: { url: msg.url || "./" }
   }));
 });
 self.addEventListener("notificationclick", e => {
   e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "./";
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
-    for (const c of list) { if ("focus" in c) return c.focus(); }
-    return self.clients.openWindow("./");
+    for (const c of list) {
+      if ("focus" in c) { if (url.includes("#tale")) c.postMessage({ open: "tale" }); return c.focus(); }
+    }
+    return self.clients.openWindow(url);
   }));
 });

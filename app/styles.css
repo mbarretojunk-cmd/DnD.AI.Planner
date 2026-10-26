@@ -399,3 +399,55 @@ details.mlog summary { padding: 4px 0; font-family: var(--body); font-weight: 70
 .hh-row .btn-small { padding: 4px 9px; }
 .loot-line { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; color: var(--muted); margin-top: 6px; }
 .loot-line svg { flex: none; }
+
+/* evening tale */
+.tale { position: fixed; inset: 0; z-index: 60; overflow-y: auto; color: #f3efe4; background: radial-gradient(120% 70% at 50% 0%, #2c3a63 0%, #172038 55%, #0d1322 100%); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); animation: talein .4s ease-out; }
+.tale .muted { color: #b9c0d4; }
+.tale-inner { position: relative; max-width: 560px; margin: 0 auto; padding: 28px max(18px, env(safe-area-inset-right, 0px)) 24px max(18px, env(safe-area-inset-left, 0px)); display: grid; gap: 18px; justify-items: center; text-align: center; }
+.tale-sky { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.tale-inner { z-index: 2; }
+.tale-sky b { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: .2; animation: twinkle 3s ease-in-out infinite; }
+.tale-foe { position: relative; width: 132px; height: 132px; display: grid; place-items: center; margin-top: 8px; }
+.tale-foe img, .tale-foe-svg { width: 120px; height: 120px; border-radius: 26px; animation: foehit .5s .35s ease-in-out 2, foefall .9s 1.25s cubic-bezier(.5,0,.75,0) forwards; }
+.tale-foe-svg svg { width: 100%; height: 100%; }
+.tale-slash { position: absolute; left: -10%; top: 48%; width: 120%; height: 6px; border-radius: 3px; background: linear-gradient(90deg, transparent, #fff, #ffd27a, transparent); transform: rotate(-32deg) scaleX(0); animation: slash .35s 1.05s ease-out forwards; box-shadow: 0 0 18px #ffd27a; }
+.tale-stamp { position: absolute; inset: auto; padding: 4px 14px; border: 3px solid #e8604c; color: #e8604c; border-radius: 8px; font-family: var(--display); font-weight: 800; font-size: 1.5rem; letter-spacing: .12em; text-transform: uppercase; transform: rotate(-12deg) scale(3); opacity: 0; animation: stamp .35s 1.9s cubic-bezier(.2,1.6,.4,1) forwards; background: rgba(13,19,34,.6); }
+.tale-title { font-family: var(--display); font-size: clamp(2.4rem, 12vw, 3.4rem); line-height: 1; margin: 0; color: #ffd27a; text-shadow: 0 0 24px rgba(255,210,122,.45); opacity: 0; animation: pop .6s 1.5s cubic-bezier(.2,1.5,.4,1) forwards; }
+.tale-praise { font-size: 1.12rem; margin: 0; max-width: 34ch; opacity: 0; animation: rise .6s 1.9s ease-out forwards; }
+.tale-heroes { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.tale-hero { display: grid; justify-items: center; gap: 4px; opacity: 0; animation: bounce .7s ease-out forwards; }
+.tale-hero small { font-size: .78rem; color: #d7dbea; }
+.tale-story { display: grid; gap: 10px; text-align: left; font-family: var(--body); font-size: 1.02rem; line-height: 1.55; max-width: 40ch; }
+.tale-story p { margin: 0; opacity: 0; animation: rise .7s ease-out forwards; }
+.tale-loot { display: flex; gap: 22px; font-family: var(--mono); font-size: 1.1rem; opacity: 0; animation: rise .6s 4.1s ease-out forwards; }
+.tale-loot span { display: inline-flex; align-items: center; gap: 6px; }
+.tale-loot b { font-size: 1.5rem; color: #ffd27a; font-variant-numeric: tabular-nums; }
+.tale-next { width: 100%; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px; text-align: left; opacity: 0; animation: slideup .7s 4.7s ease-out forwards; }
+.tale-next .eyebrow { color: #b9c0d4; }
+.tale-next-foe { display: flex; gap: 12px; align-items: center; }
+.tale-next-foe img { width: 54px; height: 54px; border-radius: 14px; flex: none; animation: lurk 2.4s 5.4s ease-in-out infinite; }
+.tale-next-foe b { display: block; font-size: 1.1rem; }
+.tale-next p { margin: 0; }
+.tale-cheer { color: #ffd27a; font-weight: 600; }
+.tale-actions { display: grid; gap: 10px; width: 100%; opacity: 0; animation: rise .5s 5.2s ease-out forwards; }
+.tale-actions .btn-main { padding-block: 14px; font-size: 1rem; }
+.tale-actions .btn-quiet { color: #f3efe4; border-color: rgba(255,255,255,.25); }
+.tale-confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.tale-confetti i { position: absolute; top: -20px; left: calc(var(--x) * 1%); width: 8px; height: 13px; background: var(--c); border-radius: 2px; opacity: 0; transform: rotate(var(--r)); animation: fall 2.8s calc(1500ms + var(--d)) ease-in forwards; }
+.tale-btn { margin-top: 10px; border-color: var(--lamp); color: var(--lamp); }
+.tale.still *, .tale.still { animation: none !important; opacity: 1 !important; }
+.tale.still .tale-slash { display: none; }
+.tale.still .tale-stamp { transform: rotate(-12deg); }
+.tale.still .tale-foe img, .tale.still .tale-foe-svg { opacity: .35; }
+@keyframes talein { from { opacity: 0; } }
+@keyframes twinkle { 50% { opacity: .9; } }
+@keyframes foehit { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-9px) rotate(-4deg); } 75% { transform: translateX(9px) rotate(4deg); } }
+@keyframes foefall { to { transform: translateY(26px) rotate(14deg) scale(.82); opacity: .3; filter: grayscale(1); } }
+@keyframes slash { to { transform: rotate(-32deg) scaleX(1); opacity: 0; } 60% { opacity: 1; } }
+@keyframes stamp { to { transform: rotate(-12deg) scale(1); opacity: 1; } }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes bounce { 0% { transform: translateY(20px) scale(.6); opacity: 0; } 60% { transform: translateY(-6px) scale(1.06); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes slideup { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes lurk { 50% { transform: translateY(-4px) rotate(-3deg); } }
+@keyframes fall { 0% { opacity: 1; transform: translateY(0) rotate(var(--r)); } 100% { opacity: 0; transform: translateY(105vh) rotate(calc(var(--r) + 540deg)); } }

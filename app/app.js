@@ -497,6 +497,7 @@
     $("next").disabled = viewDate >= addDays(today, MAX_AHEAD); $("prev").disabled = viewDate <= startK; $("todayBtn").hidden = isToday;
     $("listTitle").textContent = isToday ? "Tonight" : isFuture ? "Coming up" : "That evening";
     renderTimeline();
+    setTimeout(maybeTale, 0);
 
     const list = visibleHabits();
     const shownList = habitsOn(viewDate).filter(h => dueOn(h, viewDate));
@@ -533,6 +534,7 @@
       enc.classList.add("won");
       enc.innerHTML = '<div class="eyebrow">Rest day</div><div class="foe-name">The party is resting</div><p class="small muted">No monster, no damage and no XP for ' + (isToday ? "today" : niceDate(viewDate)) + '. Tick anything you still manage; it just won\'t be scored.</p>';
     }
+    if (r.win && r.need && !isFuture && !resting && viewDate >= startK) { const tb = mkBtn(isToday ? "Read tonight’s tale" : "Read that night’s tale", "btn-small tale-btn", () => openTale(viewDate)); enc.appendChild(tb); }
     if (viewDate <= addDays(today, MAX_AHEAD) && viewDate >= startK) {
       const rk = "rest:" + viewDate, rl = restLeft(viewDate);
       const rr = document.createElement("div"); rr.className = "row";
@@ -1343,6 +1345,133 @@
     notice: showNotice,
     day: k => evaluateDay(k, G.level)
   };
+
+  /* ================= evening tale: victory recap at free time ================= */
+  const slugOf = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  let taleWanted = location.hash === "#tale";
+  const GERUND = { vacuum: "vacuuming", take: "taking", cook: "cooking", clean: "cleaning", read: "reading", fold: "folding", hang: "hanging", mop: "mopping", move: "moving", wash: "washing", do: "doing", prep: "prepping", tidy: "tidying", change: "changing", dust: "dusting", empty: "emptying", water: "watering", feed: "feeding", walk: "walking", buy: "buying", pay: "paying", sort: "sorting", put: "putting", wipe: "wiping" };
+  function shortTask(h, k) {
+    let n = displayName(h, k).replace(/\s*\(.*?\)/g, "").split(/[:,]| \+ /)[0].replace(/ (for|with) the cat$/i, "").replace(/ after .*$/i, "").trim();
+    const w = n.split(" "), first = w[0].toLowerCase();
+    if (GERUND[first]) return [GERUND[first]].concat(w.slice(1)).join(" ");
+    n = n.charAt(0).toLowerCase() + n.slice(1);
+    return /^(a|an|the|\d)/i.test(n) ? n : "the " + n;
+  }
+  function listJoin(a) { return a.length < 2 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
+  function pick(arr, seed) { return arr[hash(seed) % arr.length]; }
+  function taleStats(k) {
+    const r = evaluateDay(k, G.level);
+    const doneAll = r.doneDaily.concat(r.doneExtra, r.doneWeekly);
+    const total = r.daily.length + r.extraDue.length + r.weekly.filter(h => dueOn(h, k)).length;
+    const xp = 10 * (r.doneDaily.length + r.doneExtra.length) + 15 * r.doneWeekly.length + 10 * r.ms + (r.win ? 15 : 0);
+    const gold = r.win ? 10 + 2 * G.level + (hash(k + "g") % 6) + BONUS_GOLD * r.bonus : 0;
+    return { r, doneAll, total, xp, gold };
+  }
+  function buildStory(k, st) {
+    const r = st.r, nm = id => (PARTY.find(p => p.id === id) || {}).name || id;
+    const by = {}; st.doneAll.forEach(h => { (by[h.group] = by[h.group] || []).push(shortTask(h, k)); });
+    const open = pick([
+      "The " + r.monster + " slithered in at dusk. " + r.lore,
+      "At half past six the door opened, and the " + r.monster + " was already waiting. " + r.lore,
+      "Word reached the party of a " + r.monster + " nearby. " + r.lore,
+      "The " + r.monster + " thought tonight would be easy. " + r.lore
+    ], k + "o");
+    const lines = [];
+    if (by.cat) lines.push(nm("familiar") + " " + pick(["stood guard first, and made very sure of", "supervised, with great seriousness,", "demanded, loudly, and received"], k + "c") + " " + listJoin(by.cat) + ".");
+    if (by.house) lines.push(nm("fighter") + " " + pick(["raised a shield and took on", "charged straight through", "saw to"], k + "h") + " " + listJoin(by.house) + (pick([" without a word of complaint.", ".", ", sword never sheathed."], k + "h2")));
+    if (by.food) lines.push(nm("cleric") + " " + pick(["kept the party fed and the kitchen holy, taking care of", "worked quiet miracles in the kitchen:", "blessed the hearth by"], k + "f") + " " + listJoin(by.food) + ".");
+    if (by.hobby) lines.push(nm("wizard") + " " + pick(["restored the party's mana by", "retreated to the tower for", "studied the old arts:"], k + "w") + " " + listJoin(by.hobby) + ".");
+    if (r.ms) lines.push(nm("rogue") + " slipped away and moved a quest forward" + (r.ms > 1 ? " " + r.ms + " steps" : "") + ".");
+    const heroes = Object.keys(by).map(g => GROUPS[g].member).concat(r.ms ? ["rogue"] : []);
+    const finisher = nm(pick(heroes.length ? heroes : ["fighter"], k + "x"));
+    const end = "With a final blow from " + finisher + ", the " + r.monster + " " + pick(["dissolved into a cloud of crumbs", "collapsed with a long hiss", "fled under the sofa, never to return", "crumbled like a stale biscuit", "let out one last wail and vanished"], k + "e") + ".";
+    return [open, lines.join(" "), end];
+  }
+  function compliment(st) {
+    const done = st.doneAll.length, ratio = st.total ? done / st.total : 1;
+    if (ratio >= 1) return "A flawless evening. Every single task, done. The whole party is proud of you.";
+    if (ratio >= 0.8) return "Outstanding work: " + done + " of " + st.total + " done. That's a hero's evening.";
+    if (st.r.bonus >= 2) return "The job's done, and then some: " + st.r.bonus + " bonus hits. The bards will hear of this.";
+    return "The job is done, and that's what counts. Well fought.";
+  }
+  function tomorrowInfo(k) {
+    const t = addDays(k, 1), tr = evaluateDay(t, G.level), w = dow(t);
+    const special = tr.daily.filter(h => isScheduled(h) || isAfter(h)).map(h => shortTask(h, t));
+    const day = parseKey(t).toLocaleDateString("en-GB", { weekday: "long" });
+    let plan = tr.need ? tr.mustNeed + " must-dos + " + tr.anyNeed + " of anything." : "No must-dos. A quiet night.";
+    if (special.length) plan += " " + day + " brings " + listJoin(special) + ".";
+    if (days[t] && days[t].rest) plan = "You've marked a rest day. No fight tomorrow.";
+    else if (isLab(t)) plan = "Lab day: weekend chores are excused. Just the basics.";
+    const cheer = w === 6 ? "Saturday: one chores block in the morning, then the day is yours. Rest well." : w === 0 ? "Sunday: lunch prep day. Cook once, eat well all week." : w === 5 ? "Friday's an easy one. You've earned a gentle night." : pick(["Rest well. The party will be ready at 18:30.", "Sleep well, recover your strength. Tomorrow we ride again.", "Enjoy your free time. You've earned every minute of it."], t);
+    return { t, tr, day, plan, cheer };
+  }
+  function openTale(k) {
+    k = k || todayKey();
+    const st = taleStats(k); if (!st.r.win) return;
+    try { localStorage.setItem("eah-tale-" + k, "1"); } catch (e) {}
+    taleWanted = false; if (location.hash === "#tale") { try { history.replaceState(null, "", "#tonight"); } catch (e) {} }
+    const story = buildStory(k, st), tm = tomorrowInfo(k);
+    const heroes = PARTY.filter(p => st.doneAll.some(h => GROUPS[h.group].member === p.id) || (p.id === "rogue" && st.r.ms));
+    const el = $("tale");
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const confetti = reduce ? "" : Array.from({ length: 34 }, (_, i) => '<i style="--x:' + (hash(k + i) % 100) + ';--d:' + (hash(k + "d" + i) % 900) + 'ms;--r:' + (hash(k + "r" + i) % 360) + 'deg;--c:' + ["var(--lamp)", "var(--hobby)", "var(--cat)", "var(--house)", "var(--food)", "var(--rogue)"][i % 6] + '"></i>').join("");
+    el.innerHTML =
+      '<div class="tale-sky" aria-hidden="true">' + Array.from({ length: 26 }, (_, i) => '<b style="left:' + (hash("s" + i) % 100) + '%;top:' + (hash("t" + i) % 60) + '%;animation-delay:' + (hash("u" + i) % 3000) + 'ms"></b>').join("") + '</div>' +
+      '<div class="tale-confetti" aria-hidden="true">' + confetti + '</div>' +
+      '<div class="tale-inner">' +
+        '<div class="tale-foe"><img src="icons/monsters/' + slugOf(st.r.monster) + '.png" alt=""><span class="tale-slash"></span><span class="tale-stamp">Slain</span></div>' +
+        '<h2 class="tale-title">Victory!</h2>' +
+        '<p class="tale-praise"></p>' +
+        '<div class="tale-heroes">' + heroes.map((p, i) => '<span class="tale-hero" style="animation-delay:' + (1700 + i * 140) + 'ms">' + portrait(p, 46) + '<small></small></span>').join("") + '</div>' +
+        '<div class="tale-story"></div>' +
+        '<div class="tale-loot"><span>' + ICON.star + ' <b data-to="' + st.xp + '">0</b> XP</span><span>' + ICON.coin + ' <b data-to="' + st.gold + '">0</b> gold</span></div>' +
+        '<div class="tale-next">' +
+          '<div class="eyebrow">Tomorrow · ' + esc(tm.day) + '</div>' +
+          '<div class="tale-next-foe"><img src="icons/monsters/' + slugOf(tm.tr.monster) + '.png" alt="" onerror="this.remove()"><div><b>' + esc(tm.tr.monster) + '</b><span class="small muted">' + esc(tm.tr.lore) + '</span></div></div>' +
+          '<p class="small"></p><p class="tale-cheer"></p>' +
+        '</div>' +
+        '<div class="tale-actions"><button type="button" class="btn-main" id="taleClose">On to free time</button><button type="button" class="btn-quiet" id="taleDm" hidden>Let the DM tell it</button></div>' +
+      '</div>';
+    const fi = el.querySelector(".tale-foe img"); fi.onerror = () => { const sp = document.createElement("span"); sp.className = "tale-foe-svg"; sp.innerHTML = foeIcon(st.r.monster); fi.replaceWith(sp); };
+    el.querySelector(".tale-praise").textContent = compliment(st);
+    heroes.forEach((p, i) => { el.querySelectorAll(".tale-hero small")[i].textContent = p.name; });
+    const storyBox = el.querySelector(".tale-story");
+    story.filter(Boolean).forEach((t, i) => { const p = document.createElement("p"); p.textContent = t; p.style.animationDelay = (2300 + i * 700) + "ms"; storyBox.appendChild(p); });
+    el.querySelector(".tale-next p.small").textContent = tm.plan;
+    el.querySelector(".tale-cheer").textContent = tm.cheer;
+    el.hidden = false; document.body.style.overflow = "hidden"; el.scrollTop = 0;
+    el.classList.toggle("still", reduce);
+    // count the loot up once it appears
+    setTimeout(() => el.querySelectorAll(".tale-loot b").forEach(b => { const to = Number(b.dataset.to), t0 = performance.now(); const step = now => { const f = Math.min(1, (now - t0) / 900); b.textContent = Math.round(to * f); if (f < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }), reduce ? 0 : 4200);
+    try { if (!reduce && navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 120]); } catch (e) {}
+    $("taleClose").onclick = closeTale;
+    const dm = $("taleDm"), key = window.DM && window.DM.get && window.DM.get(window.DM.keys.KEY);
+    if (key) { dm.hidden = false; dm.onclick = () => dmTale(k, st, tm, key); }
+  }
+  function closeTale() { $("tale").hidden = true; $("tale").innerHTML = ""; document.body.style.overflow = ""; }
+  async function dmTale(k, st, tm, key) {
+    const dm = $("taleDm"); dm.disabled = true; dm.textContent = "The DM is writing…";
+    const box = $("tale").querySelector(".tale-story");
+    const names = PARTY.map(p => p.name + " the " + p.cls).join(", ");
+    const did = st.doneAll.map(h => displayName(h, k) + " (" + PARTY.find(p => p.id === GROUPS[h.group].member).name + ")").join("; ");
+    const prompt = "Tonight the party (" + names + ") defeated the " + st.r.monster + " (" + st.r.lore + ") in my real evening at home. What I actually did: " + did + ". Write a short, warm, funny fantasy tale of the fight in 4 to 6 sentences, crediting the party members for the tasks they guard. End with one line foreshadowing tomorrow's foe, the " + tm.tr.monster + " (" + tm.tr.lore + "). Plain text, no title, no lists.";
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: window.DM.get(window.DM.keys.MODEL) || "claude-haiku-5-5", max_tokens: 400, messages: [{ role: "user", content: prompt }] }) });
+      if (!res.ok) throw new Error(res.status === 401 ? "The DM's key was rejected. Check it in Settings." : "The DM couldn't answer (" + res.status + ").");
+      const data = await res.json(); const text = (data.content || []).filter(c => c.type === "text").map(c => c.text).join("\n").trim();
+      if (!text) throw new Error("The DM had nothing to say.");
+      box.innerHTML = ""; text.split(/\n+/).forEach(t => { const p = document.createElement("p"); p.textContent = t; p.style.animationDelay = "0ms"; box.appendChild(p); });
+      dm.hidden = true;
+    } catch (e) { dm.disabled = false; dm.textContent = (e && e.message && !/fetch/i.test(e.message)) ? e.message : "Couldn't reach the DM. Try again."; }
+  }
+  function maybeTale() {
+    const k = todayKey(); if (!daysLoaded || !$("tale").hidden || tab !== "tonight") return;
+    let seen = false; try { seen = localStorage.getItem("eah-tale-" + k) === "1"; } catch (e) {}
+    const r = evaluateDay(k, G.level); if (!r.win || !r.need || k < (game.startDate || k)) return;
+    if (taleWanted || (!seen && nowMins() >= FREE && !(days[k] && days[k].rest))) openTale(k);
+  }
+  window.addEventListener("hashchange", () => { if (location.hash === "#tale") { taleWanted = true; maybeTale(); } });
+  if (navigator.serviceWorker) navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.open === "tale") { taleWanted = true; maybeTale(); } });
 
   /* ================= focus timer for timed habits ================= */
   function timedMinutes(x) {
