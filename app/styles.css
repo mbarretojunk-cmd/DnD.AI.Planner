@@ -378,3 +378,12 @@ details.mlog summary { padding: 4px 0; font-family: var(--body); font-weight: 70
 .titem.timed .tmeta { color: var(--lamp); }
 .focus-awake input { width: auto; flex: none; margin-top: 3px; }
 .focus-awake { justify-content: center; }
+
+/* tap-for-info tooltips */
+[data-tip] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+[data-tip]:not(button):not(a) { cursor: help; }
+.tip { position: fixed; z-index: 90; background: var(--ink); color: var(--bg); font-size: 0.86rem; line-height: 1.4; padding: 8px 11px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.22); pointer-events: none; animation: tipin 0.12s ease-out; }
+.tip::after { content: ""; position: absolute; left: var(--ax, 50%); top: 100%; transform: translateX(-50%); border: 7px solid transparent; border-top-color: var(--ink); }
+.tip.below::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--ink); }
+@keyframes tipin { from { opacity: 0; transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .tip { animation: none; } }

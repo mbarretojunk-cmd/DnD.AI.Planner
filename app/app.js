@@ -259,7 +259,7 @@
     $("party").innerHTML = PARTY.map(p => {
       const m = G.members[p.id], mx = m.max || mh; const pct = m.hp / mx * 100;
       const low = pct <= 30;
-      return '<button type="button" class="pm' + (m.ko ? " ko" : "") + (low && !m.ko ? " low" : "") + '" title="' + esc(p.name) + ', ' + p.cls + ' level ' + m.lv + ': ' + m.hp + '/' + mx + ' HP" aria-label="' + esc(p.name) + ', ' + p.cls + ', level ' + m.lv + ', ' + (m.ko ? "down" : m.hp + " of " + mx + " HP") + '"><span class="pm-port">' + portrait(p) + '<span class="lvb">' + m.lv + '</span></span>' + bar(pct, low ? "var(--hurt)" : "var(--hp)") + '<span class="hpn">' + (m.ko ? "down" : m.hp + "/" + mx) + '</span></button>';
+      return '<button type="button" class="pm' + (m.ko ? " ko" : "") + (low && !m.ko ? " low" : "") + '" data-tip="' + esc(p.name) + ', ' + p.cls + ' level ' + m.lv + ': ' + (m.ko ? "knocked out, needs " + (2 - m.wins) + " won night" + (2 - m.wins === 1 ? "" : "s") + " to get up" : m.hp + "/" + mx + " HP") + '. Grows from ' + esc(p.guards) + '. Tap to open the Party." aria-label="' + esc(p.name) + ', ' + p.cls + ', level ' + m.lv + ', ' + (m.ko ? "down" : m.hp + " of " + mx + " HP") + '"><span class="pm-port">' + portrait(p) + '<span class="lvb">' + m.lv + '</span></span>' + bar(pct, low ? "var(--hurt)" : "var(--hp)") + '<span class="hpn">' + (m.ko ? "down" : m.hp + "/" + mx) + '</span></button>';
     }).join("");
     $("party").querySelectorAll(".pm").forEach(b => b.onclick = () => setTab("party"));
     const lo = xpFor(G.level), hi = xpFor(G.level + 1);
@@ -404,8 +404,8 @@
       meta.textContent = mt; if (mt) nm.appendChild(meta);
       const side = b.querySelector(".tside");
       const gp = PARTY.find(x => x.id === GROUPS[h.group].member);
-      if (!done && kind === "must" && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.title = gp.name + " takes 6 damage if this is left undone"; }
-      else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.title = "XP for " + gp.name; }
+      if (!done && kind === "must" && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.dataset.tip = "Must-do. If it's still open at midnight, " + gp.name + " (" + gp.cls + ") takes 6 damage."; }
+      else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.dataset.tip = "+" + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + " XP for " + gp.name + " (" + gp.cls + ") when you do it. It also heals them 3 HP."; }
       const timed = h.minutes && !done && k === todayKey();
       if (timed) {
         const running = timer && timer.hid === h.id && timer.k === k;
@@ -480,18 +480,18 @@
     let threat = "";
     if (isToday && !r.win && viewDate >= startK) {
       let tot = r.missedDaily.length * 6; PARTY.forEach(p => { if (!G.members[p.id].ko) tot += 4; });
-      threat = '<div class="threat-line" title="If the night ended now"><span class="tl-lbl">At midnight:</span><span>' + ICON.heart + '−' + tot + '</span><span>' + ICON.star + '−10</span><span>' + ICON.coin + '−' + Math.floor(G.gold * 0.25) + '</span></div>';
+      threat = '<div class="threat-line"><span class="tl-lbl" data-tip="What happens if the monster is still alive at midnight, counted as things stand right now.">At midnight:</span><span data-tip="Damage to the party if you lose: 6 to the guardian of each missed must-do, plus 4 to every member still standing.">' + ICON.heart + '−' + tot + '</span><span data-tip="XP lost if the night is lost.">' + ICON.star + '−10</span><span data-tip="Gold lost if the night is lost: a quarter of your purse.">' + ICON.coin + '−' + Math.floor(G.gold * 0.25) + '</span></div>';
     }
     const need = Math.ceil(r.foeHp / 10), landed = Math.min(need, Math.floor(r.dealt / 10));
     const swords = Array.from({ length: need }, (_, i) => '<span class="sw' + (i < landed ? " on" : "") + '">' + ICON.sword + '</span>').join("");
     const hitNow = isToday && Date.now() - lastHit < 1600;
     enc.innerHTML =
-      '<div class="foe"><div class="foe-icon' + (hitNow ? " hit" : "") + (r.win ? " dead" : "") + '">' + foeIcon(r.monster) + (hitNow ? '<span class="dmgfloat">−10</span>' : "") + '</div>' +
+      '<div class="foe"><div class="foe-icon' + (hitNow ? " hit" : "") + (r.win ? " dead" : "") + '" data-tip="Tonight’s monster. Every task you finish hits it for 10 damage. Beat it before midnight to win the night.">' + foeIcon(r.monster) + (hitNow ? '<span class="dmgfloat">−10</span>' : "") + '</div>' +
       '<div style="min-width:0;flex:1"><div class="eyebrow">' + (isToday ? "Tonight" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div>' +
-      '<div class="foe-hpbig">' + ICON.heart + '<b>' + left + '</b></div></div>' +
+      '<div class="foe-hpbig" data-tip="Monster HP left. Each finished task takes 10 off. At 0 the party wins the night: XP, gold and healing.">' + ICON.heart + '<b>' + left + '</b></div></div>' +
       '<div class="foe-hp">' + bar(left / r.foeHp * 100, "var(--hurt)") + '</div>' +
-      '<div class="hits"><div class="swords" aria-label="' + landed + ' of ' + need + ' hits">' + swords + '</div><span class="hitlbl">' + (r.win ? "Defeated!" : (need - landed) + " more to win") + '</span></div>' + threat;
-    if (isFuture) enc.innerHTML = '<div class="foe"><div class="foe-icon">' + foeIcon(r.monster) + '</div><div style="min-width:0;flex:1"><div class="eyebrow">' + (viewDate === addDays(today, 1) ? "Tomorrow" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div><div class="foe-hpbig">' + ICON.heart + '<b>' + r.foeHp + '</b></div></div><div class="hits"><div class="swords">' + Array.from({ length: need }, () => '<span class="sw">' + ICON.sword + '</span>').join("") + '</div><span class="hitlbl">' + need + ' tasks to kill</span></div>';
+      '<div class="hits"><div class="swords" aria-label="' + landed + ' of ' + need + ' hits" data-tip="One sword per task needed to kill the monster. Lit swords are hits you’ve already landed tonight.">' + swords + '</div><span class="hitlbl">' + (r.win ? "Defeated!" : (need - landed) + " more to win") + '</span></div>' + threat;
+    if (isFuture) enc.innerHTML = '<div class="foe"><div class="foe-icon">' + foeIcon(r.monster) + '</div><div style="min-width:0;flex:1"><div class="eyebrow">' + (viewDate === addDays(today, 1) ? "Tomorrow" : niceDate(viewDate)) + '</div><div class="foe-name">' + esc(r.monster) + '</div></div><div class="foe-hpbig" data-tip="The monster’s HP. Each finished task does 10 damage.">' + ICON.heart + '<b>' + r.foeHp + '</b></div></div><div class="hits"><div class="swords" data-tip="Tasks needed to kill it that night.">' + Array.from({ length: need }, () => '<span class="sw">' + ICON.sword + '</span>').join("") + '</div><span class="hitlbl">' + need + ' tasks to kill</span></div>';
     if (viewDate < startK) { enc.classList.add("won"); enc.innerHTML = '<div class="eyebrow">Setup day</div><div class="foe-name">The adventure starts ' + (startK === addDays(today, 1) ? "tomorrow" : niceDate(startK)) + '</div><p class="small muted">Nothing today is scored. Tick things if you like, it costs nothing.</p>'; }
     // rest day
     const resting = !!(days[viewDate] && days[viewDate].rest);
@@ -611,8 +611,8 @@
       const card = document.createElement("div"); card.className = "panel mcard";
       card.innerHTML = '<div class="mhead"><span class="' + (m.ko ? "ko-portrait" : "") + '">' + portrait(p, 60) + '</span>' +
         '<div class="stack" style="gap:5px;min-width:0;flex:1"><div class="between"><h3>' + esc(p.name) + '</h3><span class="lvpill">' + p.cls + ' · Lv ' + m.lv + '</span></div>' +
-        '<div class="statrow">' + ICON.heart + bar(m.hp / mx * 100, m.hp / mx <= 0.3 ? "var(--hurt)" : "var(--hp)") + '<span class="mono small">' + (m.ko ? "down" : m.hp + "/" + mx) + '</span></div>' +
-        '<div class="statrow">' + ICON.star + bar((m.xp - lo) / (hi - lo) * 100, "var(--hobby)") + '<span class="mono small">' + (m.xp - lo) + "/" + (hi - lo) + '</span></div>' +
+        '<div class="statrow" data-tip="Health. Missed must-dos and lost nights hurt; finished tasks heal 3 each. At 0 they’re knocked out until the party wins two nights.">' + ICON.heart + bar(m.hp / mx * 100, m.hp / mx <= 0.3 ? "var(--hurt)" : "var(--hp)") + '<span class="mono small">' + (m.ko ? "down" : m.hp + "/" + mx) + '</span></div>' +
+        '<div class="statrow" data-tip="XP toward ' + esc(p.name) + '’s next level, earned from ' + esc(p.guards) + ' tasks.">' + ICON.star + bar((m.xp - lo) / (hi - lo) * 100, "var(--hobby)") + '<span class="mono small">' + (m.xp - lo) + "/" + (hi - lo) + '</span></div>' +
         '<span class="small muted">Grows from: ' + esc(p.guards) + (m.ko ? ' · <b style="color:var(--hurt)">down, ' + (2 - m.wins) + ' win' + (2 - m.wins === 1 ? "" : "s") + ' to get up</b>' : "") + '</span></div></div>';
       const det = document.createElement("details"); det.className = "mlog"; det.open = !!openRecipe["log:" + p.id];
       det.addEventListener("toggle", () => { openRecipe["log:" + p.id] = det.open; });
