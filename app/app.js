@@ -133,13 +133,25 @@
   const maxHp = lv => 30 + 5 * (lv - 1);
   function levelOf(xp) { let l = 1; while (xp >= xpFor(l + 1)) l++; return l; }
 
-  const BONUS_GOLD = 5;
+  const BONUS_GOLD = 5, BOSS_MAX = 6;
+  // which due tasks the monster is made of, most important first:
+  // cat basics, then that day's scheduled chores and follow-ups, then food, then daily house, then free time
+  function bossRank(h) {
+    if (isScheduled(h) || isAfter(h)) return 1;
+    return { cat: 0, food: 2, house: 3 }[h.group] ?? 4;
+  }
+  function bossTasks(hs, k) {
+    return hs.filter(h => mustDo(h, k)).sort((a, b) => bossRank(a) - bossRank(b) || (a.order || 0) - (b.order || 0) || (a.id < b.id ? -1 : 1));
+  }
   function evaluateDay(k, level) {
     const hs = habitsOn(k);
-    const daily = hs.filter(h => mustDo(h, k));
+    const due = bossTasks(hs, k);
+    const daily = due.slice(0, BOSS_MAX);               // the monster: these must be done
+    const extraDue = due.slice(BOSS_MAX);               // due today but only bonus
     const weekly = hs.filter(h => isWeekly(h));
     const doneDaily = daily.filter(h => isDone(h.id, k));
     const missedDaily = daily.filter(h => !isDone(h.id, k));
+    const doneExtra = extraDue.filter(h => isDone(h.id, k));
     const doneWeekly = weekly.filter(h => isDone(h.id, k));
     const ms = milestonesDoneOn(k);
     const mon = MONSTERS[hash(k) % MONSTERS.length];
@@ -147,8 +159,8 @@
     // weekly targets and quest milestones done the same day are bonus loot.
     const foeHp = 10 * daily.length;
     const dealt = 10 * doneDaily.length;
-    const bonus = doneWeekly.length + ms;
-    return { k, daily, weekly, doneDaily, missedDaily, doneWeekly, ms, bonus, monster: mon[0], lore: mon[1], foeHp, dealt, win: missedDaily.length === 0 };
+    const bonus = doneWeekly.length + doneExtra.length + ms;
+    return { k, daily, weekly, extraDue, doneExtra, doneDaily, missedDaily, doneWeekly, ms, bonus, monster: mon[0], lore: mon[1], foeHp, dealt, win: missedDaily.length === 0 };
   }
 
   function computeGame() {
@@ -173,9 +185,9 @@
       const dmg = [];
       const entry = { k, monster: r.monster, win: r.win, xp: 0, gold: 0, notes: [] };
       // XP and healing
-      let xp = 10 * r.doneDaily.length + 15 * r.doneWeekly.length + 10 * r.ms;
+      let xp = 10 * (r.doneDaily.length + r.doneExtra.length) + 15 * r.doneWeekly.length + 10 * r.ms;
       quests.forEach(q => { if (questDoneDate(q) === k) { xp += 40; entry.notes.push("Quest done: " + q.title); } });
-      [...r.doneDaily, ...r.doneWeekly].forEach(h => heal(GROUPS[h.group].member, 3));
+      [...r.doneDaily, ...r.doneExtra, ...r.doneWeekly].forEach(h => heal(GROUPS[h.group].member, 3));
       for (let i = 0; i < r.ms; i++) heal("rogue", 3);
       if (r.win) {
         xp += 15; const g = 10 + 2 * S.level + (hash(k + "g") % 6) + BONUS_GOLD * r.bonus; S.gold += g; entry.gold = g;
@@ -212,7 +224,7 @@
       // each member grows from their own kind of task, and keeps a personal log
       const mg = {}, did = {}, missed = {};
       PARTY.forEach(p => { mg[p.id] = 0; did[p.id] = []; missed[p.id] = []; });
-      r.doneDaily.forEach(h => { const id = GROUPS[h.group].member; mg[id] += 10; did[id].push(displayName(h, k)); });
+      [...r.doneDaily, ...r.doneExtra].forEach(h => { const id = GROUPS[h.group].member; mg[id] += 10; did[id].push(displayName(h, k)); });
       r.doneWeekly.forEach(h => { const id = GROUPS[h.group].member; mg[id] += 15; did[id].push(displayName(h, k)); });
       r.missedDaily.forEach(h => missed[GROUPS[h.group].member].push(displayName(h, k)));
       if (r.ms) { mg.rogue += 10 * r.ms; did.rogue.push(r.ms + " milestone" + (r.ms === 1 ? "" : "s")); }
@@ -270,7 +282,7 @@
     $("xpLabel").textContent = (G.xp - lo) + " / " + (hi - lo) + " XP to level " + (G.level + 1);
     $("xpBar").style.width = ((G.xp - lo) / (hi - lo) * 100) + "%";
     const t = evaluateDay(todayKey(), G.level);
-    const pendingXp = 10 * t.doneDaily.length + 15 * t.doneWeekly.length + 10 * t.ms;
+    const pendingXp = 10 * (t.doneDaily.length + t.doneExtra.length) + 15 * t.doneWeekly.length + 10 * t.ms;
     $("xpToday").textContent = pendingXp ? "+" + pendingXp + " XP tonight, banked at midnight" : "";
   }
 
@@ -373,15 +385,16 @@
     const k = viewDate, gOrder = Object.keys(GROUPS), preStart = k < (game.startDate || todayKey());
     const isFree = h => h.group === FREE_GROUP;
     const sortFn = (a, b) => gOrder.indexOf(a.group) - gOrder.indexOf(b.group) || (a.order || 0) - (b.order || 0);
-    const must = shownList.filter(h => !isFree(h) && mustDo(h, k)).sort(sortFn);
-    const opt = shownList.filter(h => !isFree(h) && !mustDo(h, k)).sort(sortFn);
+    const bossSet = new Set(evaluateDay(k, G.level).daily.map(h => h.id)), isBoss = h => bossSet.has(h.id);
+    const must = shownList.filter(h => !isFree(h) && isBoss(h)).sort(sortFn);
+    const opt = shownList.filter(h => !isFree(h) && !isBoss(h)).sort(sortFn);
     const free = shownList.filter(h => isFree(h)).sort(sortFn);
     const all = must.concat(opt, free);
     const doneN = all.filter(h => isDone(h.id, k)).length;
     $("count").textContent = all.length ? doneN + " / " + all.length + " done" : "";
     $("todoFill").style.width = (all.length ? doneN / all.length * 100 : 0) + "%";
     const mustOpen = must.filter(h => !isDone(h.id, k));
-    const freeOpen = free.filter(h => mustDo(h, k) && !isDone(h.id, k));
+    const freeOpen = free.filter(h => isBoss(h) && !isDone(h.id, k));
     const freeTail = freeOpen.length ? ", then " + (freeOpen.length === 1 ? (n => n.charAt(0).toLowerCase() + n.slice(1))(freeOpen[0].name.replace(/\s*\(.*\)$/, "")) : freeOpen.length + " more") + " in free time to finish the monster" : "";
     let note = "";
     if (isFuture) note = "Preview. You can tick these on the day.";
@@ -413,8 +426,8 @@
       meta.textContent = mt; if (mt) nm.appendChild(meta);
       const side = b.querySelector(".tside");
       const gp = PARTY.find(x => x.id === GROUPS[h.group].member);
-      if (!done && (kind === "must" || (kind === "free" && mustDo(h, k))) && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.dataset.tip = "Must-do. If it's still open at midnight, " + gp.name + " (" + gp.cls + ") takes 6 damage."; }
-      else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.dataset.tip = kind === "must" || (kind === "free" && mustDo(h, k)) ? "+10 XP for " + gp.name + " (" + gp.cls + ") and a hit on the monster. It also heals them 3 HP." : "Extra: +" + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + " XP for " + gp.name + " (" + gp.cls + "), +" + BONUS_GOLD + " gold in tonight’s loot and 3 HP of healing. It doesn’t hit the monster."; }
+      if (!done && (kind === "must" || (kind === "free" && isBoss(h))) && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.dataset.tip = "Must-do. If it's still open at midnight, " + gp.name + " (" + gp.cls + ") takes 6 damage."; }
+      else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.dataset.tip = kind === "must" || (kind === "free" && isBoss(h)) ? "+10 XP for " + gp.name + " (" + gp.cls + ") and a hit on the monster. It also heals them 3 HP." : "Extra: +" + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + " XP for " + gp.name + " (" + gp.cls + "), +" + BONUS_GOLD + " gold in tonight’s loot and 3 HP of healing. It doesn’t hit the monster."; }
       const timed = h.minutes && !done && k === todayKey();
       if (timed) {
         const running = timer && timer.hid === h.id && timer.k === k;
@@ -455,7 +468,7 @@
         box.appendChild(sec);
       }
     }
-    section("If you have time", "weekly targets, any day", opt, "opt");
+    section("Extras", "bonus XP and gold, no damage", opt, "opt");
     section("Free time", "from 21:30", free, "free");
     const doneList = all.filter(h => isDone(h.id, k));
     if (doneList.length) {
@@ -487,7 +500,7 @@
     const r = evaluateDay(viewDate, G.level);
     const enc = $("encounter"); enc.classList.toggle("won", r.win && !isFuture);
     const left = Math.max(0, r.foeHp - r.dealt);
-    const bonusXp = 15 * r.doneWeekly.length + 10 * r.ms;
+    const bonusXp = 15 * r.doneWeekly.length + 10 * (r.doneExtra.length + r.ms);
     let threat = "";
     if (isToday && !r.win && viewDate >= startK) {
       let tot = r.missedDaily.length * 6; PARTY.forEach(p => { if (!G.members[p.id].ko) tot += 4; });
@@ -1318,7 +1331,8 @@
     party: () => PARTY,
     today: todayKey,
     addQuest: (title, steps) => saveQuest({ id: "q" + Date.now().toString(36), title, due: null, createdAt: new Date().toISOString(), archived: false, milestones: steps.map((t, i) => ({ id: "m" + i, text: t, doneAt: null })) }),
-    notice: showNotice
+    notice: showNotice,
+    day: k => evaluateDay(k, G.level)
   };
 
   /* ================= focus timer for timed habits ================= */
