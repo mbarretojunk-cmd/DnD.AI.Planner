@@ -1,0 +1,33 @@
+name: Status snapshot
+
+# Run by Claude on request: prints an encrypted snapshot of the game data that
+# only Claude's temporary key can open. Nothing readable ends up in the log.
+on:
+  workflow_dispatch:
+    inputs:
+      pubkey:
+        description: "Base64 DER public key to encrypt to"
+        required: true
+
+concurrency:
+  group: status
+  cancel-in-progress: true
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: node status.mjs
+        env:
+          SUPABASE_URL: https://alxsiiuiqlqitkkbvxoy.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          STATUS_PUBKEY: ${{ inputs.pubkey }}
