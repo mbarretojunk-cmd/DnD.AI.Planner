@@ -1367,33 +1367,6 @@
     const gold = r.win ? 10 + 2 * G.level + (hash(k + "g") % 6) + BONUS_GOLD * r.bonus : 0;
     return { r, doneAll, total, xp, gold };
   }
-  function buildStory(k, st) {
-    const r = st.r, nm = id => (PARTY.find(p => p.id === id) || {}).name || id;
-    const by = {}; st.doneAll.forEach(h => { (by[h.group] = by[h.group] || []).push(shortTask(h, k)); });
-    const open = pick([
-      "The " + r.monster + " slithered in at dusk. " + r.lore,
-      "At half past six the door opened, and the " + r.monster + " was already waiting. " + r.lore,
-      "Word reached the party of a " + r.monster + " nearby. " + r.lore,
-      "The " + r.monster + " thought tonight would be easy. " + r.lore
-    ], k + "o");
-    const lines = [];
-    if (by.cat) lines.push(nm("familiar") + " " + pick(["stood guard first, and made very sure of", "supervised, with great seriousness,", "demanded, loudly, and received"], k + "c") + " " + listJoin(by.cat) + ".");
-    if (by.house) lines.push(nm("fighter") + " " + pick(["raised a shield and took on", "charged straight through", "saw to"], k + "h") + " " + listJoin(by.house) + (pick([" without a word of complaint.", ".", ", sword never sheathed."], k + "h2")));
-    if (by.food) lines.push(nm("cleric") + " " + pick(["kept the party fed and the kitchen holy, taking care of", "worked quiet miracles in the kitchen:", "blessed the hearth by"], k + "f") + " " + listJoin(by.food) + ".");
-    if (by.hobby) lines.push(nm("wizard") + " " + pick(["restored the party's mana by", "retreated to the tower for", "studied the old arts:"], k + "w") + " " + listJoin(by.hobby) + ".");
-    if (r.ms) lines.push(nm("rogue") + " slipped away and moved a quest forward" + (r.ms > 1 ? " " + r.ms + " steps" : "") + ".");
-    const heroes = Object.keys(by).map(g => GROUPS[g].member).concat(r.ms ? ["rogue"] : []);
-    const finisher = nm(pick(heroes.length ? heroes : ["fighter"], k + "x"));
-    const end = "With a final blow from " + finisher + ", the " + r.monster + " " + pick(["dissolved into a cloud of crumbs", "collapsed with a long hiss", "fled under the sofa, never to return", "crumbled like a stale biscuit", "let out one last wail and vanished"], k + "e") + ".";
-    return [open, lines.join(" "), end];
-  }
-  function compliment(st) {
-    const done = st.doneAll.length, ratio = st.total ? done / st.total : 1;
-    if (ratio >= 1) return "A flawless evening. Every single task, done. The whole party is proud of you.";
-    if (ratio >= 0.8) return "Outstanding work: " + done + " of " + st.total + " done. That's a hero's evening.";
-    if (st.r.bonus >= 2) return "The job's done, and then some: " + st.r.bonus + " bonus hits. The bards will hear of this.";
-    return "The job is done, and that's what counts. Well fought.";
-  }
   function tomorrowInfo(k) {
     const t = addDays(k, 1), tr = evaluateDay(t, G.level), w = dow(t);
     const special = tr.daily.filter(h => isScheduled(h) || isAfter(h)).map(h => shortTask(h, t));
@@ -1405,53 +1378,135 @@
     const cheer = w === 6 ? "Saturday: one chores block in the morning, then the day is yours. Rest well." : w === 0 ? "Sunday: lunch prep day. Cook once, eat well all week." : w === 5 ? "Friday's an easy one. You've earned a gentle night." : pick(["Rest well. The party will be ready at 18:30.", "Sleep well, recover your strength. Tomorrow we ride again.", "Enjoy your free time. You've earned every minute of it."], t);
     return { t, tr, day, plan, cheer };
   }
+  const HIT_FX = { familiar: "🐾", fighter: "⚔️", cleric: "✨", wizard: "🔮", rogue: "🗡️" };
+  let taleRun = 0, taleAudio = null;
+  function sfx(kind, n) {
+    try {
+      const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
+      taleAudio = taleAudio || new A(); const ctx = taleAudio; if (ctx.state === "suspended") ctx.resume();
+      if (ctx.state !== "running") return;
+      const t0 = ctx.currentTime, tone = (f, at, d, type, vol) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type || "square"; o.frequency.setValueAtTime(f, t0 + at); g.gain.setValueAtTime(vol || 0.06, t0 + at); g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + d); o.connect(g); g.connect(ctx.destination); o.start(t0 + at); o.stop(t0 + at + d + 0.02); };
+      if (kind === "hit") { tone(320 + 60 * (n || 0), 0, 0.09, "square", 0.05); tone(160 + 30 * (n || 0), 0.03, 0.1, "triangle", 0.06); }
+      if (kind === "crit") { tone(880, 0, 0.08, "square", 0.05); tone(1320, 0.06, 0.12, "square", 0.05); }
+      if (kind === "boom") { const len = 0.5, buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2); const src = ctx.createBufferSource(), g = ctx.createGain(); g.gain.value = 0.25; src.buffer = buf; src.connect(g); g.connect(ctx.destination); src.start(t0); }
+      if (kind === "fanfare") [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.13, i === 3 ? 0.5 : 0.16, "triangle", 0.08));
+      if (kind === "star") tone(1200 + 200 * (n || 0), 0, 0.15, "sine", 0.07);
+      if (kind === "coin") tone(1568, 0, 0.06, "square", 0.03);
+    } catch (e) {}
+  }
   function openTale(k) {
     k = k || todayKey();
     const st = taleStats(k); if (!st.r.win) return;
     try { localStorage.setItem("eah-tale-" + k, "1"); } catch (e) {}
     taleWanted = false; if (location.hash === "#tale") { try { history.replaceState(null, "", "#tonight"); } catch (e) {} }
-    const story = buildStory(k, st), tm = tomorrowInfo(k);
-    const heroes = PARTY.filter(p => st.doneAll.some(h => GROUPS[h.group].member === p.id) || (p.id === "rogue" && st.r.ms));
-    const el = $("tale");
+    const r = st.r, tm = tomorrowInfo(k), run = ++taleRun;
+    const nm = id => (PARTY.find(p => p.id === id) || {}).name || id;
+    // every task done tonight is one strike, must-dos first
+    const strikes = r.doneDaily.concat(r.doneExtra, r.doneWeekly).map(h => ({ who: GROUPS[h.group].member, what: shortTask(h, k).replace(/^the /, "") }));
+    for (let i = 0; i < r.ms; i++) strikes.push({ who: "rogue", what: "quest step" });
+    const heroes = PARTY.filter(p => strikes.some(x => x.who === p.id));
+    const ratio = st.total ? st.doneAll.length / st.total : 1, stars = ratio >= 1 ? 3 : ratio >= 0.75 ? 2 : 1;
+    const finalWho = strikes[Math.min(strikes.length, r.need) - 1] ? strikes[Math.min(strikes.length, r.need) - 1].who : "fighter";
     const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const confetti = reduce ? "" : Array.from({ length: 34 }, (_, i) => '<i style="--x:' + (hash(k + i) % 100) + ';--d:' + (hash(k + "d" + i) % 900) + 'ms;--r:' + (hash(k + "r" + i) % 360) + 'deg;--c:' + ["var(--lamp)", "var(--hobby)", "var(--cat)", "var(--house)", "var(--food)", "var(--rogue)"][i % 6] + '"></i>').join("");
+    const el = $("tale");
+    const tomorrowSwords = tm.tr.need ? Array.from({ length: tm.tr.need }, (_, i) => '<span class="sw' + (i >= tm.tr.mustNeed ? " any" : "") + '">' + ICON.sword + '</span>').join("") : "";
+    const special = tm.tr.daily.filter(h => isScheduled(h) || isAfter(h)).map(h => shortTask(h, tm.t).replace(/^the /, ""));
     el.innerHTML =
-      '<div class="tale-sky" aria-hidden="true">' + Array.from({ length: 26 }, (_, i) => '<b style="left:' + (hash("s" + i) % 100) + '%;top:' + (hash("t" + i) % 60) + '%;animation-delay:' + (hash("u" + i) % 3000) + 'ms"></b>').join("") + '</div>' +
-      '<div class="tale-confetti" aria-hidden="true">' + confetti + '</div>' +
+      '<div class="tale-sky" aria-hidden="true">' + Array.from({ length: 30 }, (_, i) => '<b style="left:' + (hash("s" + i) % 100) + '%;top:' + (hash("t" + i) % 70) + '%;animation-delay:' + (hash("u" + i) % 3000) + 'ms"></b>').join("") + '</div>' +
       '<div class="tale-inner">' +
-        '<div class="tale-foe"><img src="icons/monsters/' + slugOf(st.r.monster) + '.png" alt=""><span class="tale-slash"></span><span class="tale-stamp">Slain</span></div>' +
-        '<h2 class="tale-title">Victory!</h2>' +
-        '<p class="tale-praise"></p>' +
-        '<div class="tale-heroes">' + heroes.map((p, i) => '<span class="tale-hero" style="animation-delay:' + (1700 + i * 140) + 'ms">' + portrait(p, 46) + '<small></small></span>').join("") + '</div>' +
-        '<div class="tale-story"></div>' +
-        '<div class="tale-loot"><span>' + ICON.star + ' <b data-to="' + st.xp + '">0</b> XP</span><span>' + ICON.coin + ' <b data-to="' + st.gold + '">0</b> gold</span></div>' +
-        '<div class="tale-next">' +
-          '<div class="eyebrow">Tomorrow · ' + esc(tm.day) + '</div>' +
-          '<div class="tale-next-foe"><img src="icons/monsters/' + slugOf(tm.tr.monster) + '.png" alt="" onerror="this.remove()"><div><b>' + esc(tm.tr.monster) + '</b><span class="small muted">' + esc(tm.tr.lore) + '</span></div></div>' +
-          '<p class="small"></p><p class="tale-cheer"></p>' +
+        '<div class="tale-top"><span class="eyebrow">Tonight’s fight</span><b></b></div>' +
+        '<div class="arena">' +
+          '<div class="tfoe"><div class="tfoe-body"><img src="icons/monsters/' + slugOf(r.monster) + '.png" alt=""></div><div class="tfoe-hp"><span></span></div></div>' +
+          '<div class="tparty">' + heroes.map(p => '<span class="thero" data-id="' + p.id + '">' + portrait(p, 54) + '</span>').join("") + '</div>' +
         '</div>' +
-        '<div class="tale-actions"><button type="button" class="btn-main" id="taleClose">On to free time</button><button type="button" class="btn-quiet" id="taleDm" hidden>Let the DM tell it</button></div>' +
+        '<div class="tale-win" hidden>' +
+          '<div class="tale-banner">Victory!</div>' +
+          '<div class="tale-stars">' + [0, 1, 2].map(i => '<span class="tstar' + (i < stars ? " on" : "") + '">★</span>').join("") + '</div>' +
+          '<div class="tale-loot"><span class="tl-xp">' + ICON.star + '<b data-to="' + st.xp + '">0</b><small>XP</small></span><span class="tl-gold">' + ICON.coin + '<b data-to="' + st.gold + '">0</b><small>gold</small></span></div>' +
+          '<div class="tale-final">' + portrait(PARTY.find(p => p.id === finalWho), 30) + '<span><small>Final blow</small><b></b></span><i>' + (HIT_FX[finalWho] || "⚔️") + '</i></div>' +
+          '<div class="tale-next">' +
+            '<div class="tn-head"><span class="eyebrow"></span></div>' +
+            '<div class="tn-body"><img class="tn-foe" src="icons/monsters/' + slugOf(tm.tr.monster) + '.png" alt=""><div><b class="tn-name"></b><div class="swords tn-swords">' + tomorrowSwords + '</div><div class="tn-chips"></div></div></div>' +
+            '<p class="tale-cheer"></p>' +
+          '</div>' +
+          '<div class="tale-actions"><button type="button" class="btn-main" id="taleClose">On to free time</button><button type="button" class="btn-quiet" id="taleDm" hidden>📜 Let the DM tell the story</button><div class="tale-story"></div></div>' +
+        '</div>' +
+        '<button type="button" class="tale-skip" id="taleSkip">Skip ›</button>' +
       '</div>';
-    const fi = el.querySelector(".tale-foe img"); fi.onerror = () => { const sp = document.createElement("span"); sp.className = "tale-foe-svg"; sp.innerHTML = foeIcon(st.r.monster); fi.replaceWith(sp); };
-    el.querySelector(".tale-praise").textContent = compliment(st);
-    heroes.forEach((p, i) => { el.querySelectorAll(".tale-hero small")[i].textContent = p.name; });
-    const storyBox = el.querySelector(".tale-story");
-    story.filter(Boolean).forEach((t, i) => { const p = document.createElement("p"); p.textContent = t; p.style.animationDelay = (2300 + i * 700) + "ms"; storyBox.appendChild(p); });
-    el.querySelector(".tale-next p.small").textContent = tm.plan;
-    el.querySelector(".tale-cheer").textContent = tm.cheer;
+    el.querySelector(".tale-top b").textContent = r.monster;
+    el.querySelector(".tale-final b").textContent = nm(finalWho);
+    el.querySelector(".tn-head .eyebrow").textContent = "Tomorrow · " + tm.day;
+    el.querySelector(".tn-name").textContent = tm.tr.monster;
+    const chips = el.querySelector(".tn-chips");
+    (days[tm.t] && days[tm.t].rest ? ["rest day 💤"] : isLab(tm.t) ? ["lab day 🧪"] : special).slice(0, 3).forEach(t => { const c = document.createElement("span"); c.textContent = t; chips.appendChild(c); });
+    el.querySelector(".tale-cheer").textContent = tm.cheer.split(". ").slice(-1)[0];
+    const fi = el.querySelector(".tfoe img"); fi.onerror = () => { const sp = document.createElement("span"); sp.className = "tfoe-svg"; sp.innerHTML = foeIcon(r.monster); fi.replaceWith(sp); };
+    el.querySelector(".tn-foe").onerror = e => { e.target.remove(); };
     el.hidden = false; document.body.style.overflow = "hidden"; el.scrollTop = 0;
-    el.classList.toggle("still", reduce);
-    // count the loot up once it appears
-    setTimeout(() => el.querySelectorAll(".tale-loot b").forEach(b => { const to = Number(b.dataset.to), t0 = performance.now(); const step = now => { const f = Math.min(1, (now - t0) / 900); b.textContent = Math.round(to * f); if (f < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }), reduce ? 0 : 4200);
-    try { if (!reduce && navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 120]); } catch (e) {}
     $("taleClose").onclick = closeTale;
-    const dm = $("taleDm"), key = window.DM && window.DM.get && window.DM.get(window.DM.keys.KEY);
-    if (key) { dm.hidden = false; dm.onclick = () => dmTale(k, st, tm, key); }
+    const key = window.DM && window.DM.get && window.DM.get(window.DM.keys.KEY);
+    if (key) { $("taleDm").hidden = false; $("taleDm").onclick = () => dmTale(k, st, tm, key); }
+    let skip = reduce;
+    $("taleSkip").onclick = () => { skip = true; };
+    el.querySelector(".arena").onclick = () => { skip = true; };
+    const wait = ms => new Promise(res => setTimeout(res, skip ? 0 : ms));
+    const alive = () => run === taleRun && !el.hidden;
+    const arena = el.querySelector(".arena"), foe = el.querySelector(".tfoe"), body = el.querySelector(".tfoe-body"), hp = el.querySelector(".tfoe-hp span");
+    const center = node => { const a = arena.getBoundingClientRect(), b = node.getBoundingClientRect(); return { x: b.left - a.left + b.width / 2, y: b.top - a.top + b.height / 2 }; };
+    const fx = (cls, html, x, y) => { const d = document.createElement("span"); d.className = cls; d.innerHTML = html; d.style.left = x + "px"; d.style.top = y + "px"; arena.appendChild(d); return d; };
+    const anim = (node, frames, opts) => (node.animate && !skip) ? node.animate(frames, opts).finished.catch(() => {}) : Promise.resolve();
+    (async () => {
+      await wait(500);
+      let left = r.need;
+      for (let i = 0; i < strikes.length && alive(); i++) {
+        if (skip) break;
+        const s = strikes[i], crit = i >= r.need, hero = el.querySelector('.thero[data-id="' + s.who + '"]');
+        const from = hero ? center(hero) : { x: arena.clientWidth / 2, y: arena.clientHeight }, to = center(body);
+        if (hero) anim(hero, [{ transform: "none" }, { transform: "translateY(-16px) scale(1.18)" }, { transform: "none" }], { duration: 360, easing: "ease-out" });
+        const p = fx("tproj", HIT_FX[s.who] || "⚔️", from.x, from.y);
+        await anim(p, [{ transform: "translate(-50%,-50%) scale(.5) rotate(0)" }, { transform: "translate(calc(-50% + " + (to.x - from.x) + "px), calc(-50% + " + (to.y - from.y) + "px)) scale(1.4) rotate(" + (crit ? 720 : 360) + "deg)" }], { duration: 340, easing: "cubic-bezier(.3,.6,.4,1)" });
+        p.remove(); if (!alive()) return;
+        sfx(crit ? "crit" : "hit", i % 6); try { if (navigator.vibrate) navigator.vibrate(crit ? [20, 30, 20] : 18); } catch (e) {}
+        anim(body, [{ transform: "translateX(0)", filter: "brightness(2.6)" }, { transform: "translateX(-10px) rotate(-5deg)" }, { transform: "translateX(8px) rotate(4deg)" }, { transform: "none", filter: "none" }], { duration: 300 });
+        if (!crit) { left--; hp.style.width = Math.max(0, left / r.need * 100) + "%"; }
+        const dn = fx("tdmg" + (crit ? " crit" : ""), (crit ? "CRIT +5g" : "−10") + "<small></small>", to.x + ((i % 3) - 1) * 34, to.y - 40);
+        dn.querySelector("small").textContent = s.what;
+        anim(dn, [{ transform: "translate(-50%,0) scale(.6)", opacity: 0 }, { transform: "translate(-50%,-18px) scale(1.15)", opacity: 1, offset: .25 }, { transform: "translate(-50%,-60px) scale(1)", opacity: 0 }], { duration: 1100, easing: "ease-out" }).then(() => dn.remove());
+        await wait(crit ? 380 : 300);
+      }
+      if (!alive()) return;
+      hp.style.width = "0%";
+      // the monster bursts
+      sfx("boom"); try { if (navigator.vibrate) navigator.vibrate([60, 40, 120]); } catch (e) {}
+      const c = center(body);
+      if (!skip) {
+        await anim(body, [{ transform: "scale(1)", filter: "brightness(1)" }, { transform: "scale(1.25)", filter: "brightness(3) saturate(0)" }], { duration: 260, easing: "ease-in" });
+        for (let i = 0; i < 22; i++) {
+          const bit = fx("tbit", "", c.x, c.y), ang = (i / 22) * Math.PI * 2 + (hash(k + i) % 10) / 10, dist = 70 + (hash(k + "b" + i) % 90);
+          bit.style.background = ["#ffd27a", "#e8604c", "#9b7bd6", "#7cc28a", "#fff"][i % 5];
+          anim(bit, [{ transform: "translate(-50%,-50%) scale(1)", opacity: 1 }, { transform: "translate(calc(-50% + " + Math.cos(ang) * dist + "px), calc(-50% + " + Math.sin(ang) * dist + "px)) scale(.2)", opacity: 0 }], { duration: 700 + (hash(k + "t" + i) % 300), easing: "cubic-bezier(.1,.7,.3,1)" }).then(() => bit.remove());
+        }
+      }
+      foe.classList.add("gone");
+      await wait(450); if (!alive()) return;
+      $("taleSkip").hidden = true; arena.classList.add("done");
+      const win = el.querySelector(".tale-win"); win.hidden = false; win.classList.toggle("instant", skip);
+      sfx("fanfare");
+      if (!skip) confettiBurst(el);
+      // stars, then loot counting up
+      el.querySelectorAll(".tstar").forEach((t, i) => setTimeout(() => { t.classList.add("pop"); if (t.classList.contains("on")) sfx("star", i); }, skip ? 0 : 500 + i * 260));
+      setTimeout(() => el.querySelectorAll(".tale-loot b").forEach(b => { const to = Number(b.dataset.to), t0 = performance.now(), dur = skip ? 1 : 1000; let last = 0; const step = now => { const f = Math.min(1, (now - t0) / dur); const v = Math.round(to * f); b.textContent = v; if (b.parentNode.classList.contains("tl-gold") && v !== last && v % 3 === 0) sfx("coin"); last = v; if (f < 1 && alive()) requestAnimationFrame(step); }; requestAnimationFrame(step); }), skip ? 0 : 1300);
+    })();
   }
-  function closeTale() { $("tale").hidden = true; $("tale").innerHTML = ""; document.body.style.overflow = ""; }
+  function confettiBurst(el) {
+    const box = document.createElement("div"); box.className = "tale-confetti"; box.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 46; i++) { const c = document.createElement("i"); const coin = i % 7 === 0; c.className = coin ? "coin" : ""; c.style.cssText = "--x:" + (Math.random() * 100) + ";--d:" + Math.round(Math.random() * 700) + "ms;--r:" + Math.round(Math.random() * 360) + "deg;--c:" + ["#ffd27a", "#e8604c", "#9b7bd6", "#7cc28a", "#6fb3e0", "#fff"][i % 6] + ";--dur:" + (2.2 + Math.random() * 1.6) + "s"; box.appendChild(c); }
+    el.appendChild(box); setTimeout(() => box.remove(), 5000);
+  }
+  function closeTale() { taleRun++; $("tale").hidden = true; $("tale").innerHTML = ""; document.body.style.overflow = ""; }
   async function dmTale(k, st, tm, key) {
     const dm = $("taleDm"); dm.disabled = true; dm.textContent = "The DM is writing…";
-    const box = $("tale").querySelector(".tale-story");
+    const box = $("tale").querySelector(".tale-story"); box.hidden = false;
     const names = PARTY.map(p => p.name + " the " + p.cls).join(", ");
     const did = st.doneAll.map(h => displayName(h, k) + " (" + PARTY.find(p => p.id === GROUPS[h.group].member).name + ")").join("; ");
     const prompt = "Tonight the party (" + names + ") defeated the " + st.r.monster + " (" + st.r.lore + ") in my real evening at home. What I actually did: " + did + ". Write a short, warm, funny fantasy tale of the fight in 4 to 6 sentences, crediting the party members for the tasks they guard. End with one line foreshadowing tomorrow's foe, the " + tm.tr.monster + " (" + tm.tr.lore + "). Plain text, no title, no lists.";
