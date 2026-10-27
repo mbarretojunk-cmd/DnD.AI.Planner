@@ -121,15 +121,20 @@ function compose(docs, now, slot) {
   const isDue = h => {
     if (h.group === "hobby") return false;
     if (h.after) return done(h.after, addDays(today, -(Number(h.afterDays) || 0)));
+    if (Number(h.everyDays) >= 2) {
+      if (lab && h.group !== "cat") return false;
+      const ed = Number(h.everyDays), n = Math.round((Date.parse(today + "T12:00:00Z") - Date.parse((h.anchor || today) + "T12:00:00Z")) / 86400000);
+      return ((n % ed) + ed) % ed === 0;
+    }
     if (Array.isArray(h.days) && h.days.length) {
-      if (lab || !h.days.includes(dow)) return false;
+      if ((lab && h.group !== "cat") || !h.days.includes(dow)) return false;
       const ew = Number(h.everyWeeks) || 1;
       return ew < 2 || (((weekIndex(today) - (Number(h.weekOffset) || 0)) % ew) + ew) % ew === 0;
     }
     return Number(h.perWeek) >= 7;
   };
   // the monster is the 6 highest-ranked due tasks (same ranking as the app); the rest are extras
-  const rank = h => (h.after || (Array.isArray(h.days) && h.days.length)) ? 1 : ({ cat: 0, food: 2, house: 3 }[h.group] ?? 4);
+  const rank = h => (h.after || (Array.isArray(h.days) && h.days.length) || Number(h.everyDays) >= 2) ? 1 : ({ cat: 0, food: 2, house: 3 }[h.group] ?? 4);
   // and it takes 6 hits: at least 4 of those must-dos, the rest any task
   const boss = habits.filter(isDue).sort((a, b) => rank(a) - rank(b) || (a.order || 0) - (b.order || 0) || (a.id < b.id ? -1 : 1)).slice(0, 6);
   const bossIds = new Set(boss.map(h => h.id));

@@ -1238,7 +1238,9 @@
    "group": "cat",
    "name": "Litter box + quick vacuum around it",
    "order": 9,
-   "perWeek": 7
+   "perWeek": 7,
+   "everyDays": 2,
+   "anchor": "2026-10-26"
   },
   "habits/laundry-hang": {
    "after": "laundry",
@@ -1321,7 +1323,7 @@
   "habits/cat-wetfood": {
    "createdAt": "2026-10-25",
    "group": "cat",
-   "name": "Wet food for the cat",
+   "name": "Fresh water + wet food for the cat",
    "order": 11,
    "perWeek": 7
   },
@@ -1391,13 +1393,6 @@
    "group": "hobby",
    "name": "Read Assassin's Apprentice (30 min)",
    "order": 20,
-   "perWeek": 7
-  },
-  "habits/cat-water": {
-   "createdAt": "2026-10-25",
-   "group": "cat",
-   "name": "Fresh water for the cat",
-   "order": 10,
    "perWeek": 7
   },
   "game/state": {

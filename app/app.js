@@ -89,8 +89,12 @@
   function visibleHabits() { return habitsAll.filter(h => !h.archivedAt).sort((a, b) => (a.order || 0) - (b.order || 0)); }
   const DAYNAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
-  function isScheduled(h) { return Array.isArray(h.days) && h.days.length > 0; }
+  function everyDays(h) { const n = Number(h.everyDays) || 0; return n >= 2 ? n : 0; }
+  function isScheduled(h) { return (Array.isArray(h.days) && h.days.length > 0) || everyDays(h) > 0; }
+  function daysBetween(a, b) { return Math.round((parseKey(b) - parseKey(a)) / 86400000); }
   function scheduledOn(h, k) {
+    const ed = everyDays(h);
+    if (ed) { const n = daysBetween(h.anchor || k, k); return ((n % ed) + ed) % ed === 0; }
     if (!isScheduled(h) || !h.days.includes(dow(k))) return false;
     const ew = Number(h.everyWeeks) || 1; if (ew < 2) return true;
     return (((weekIndex(k) - (Number(h.weekOffset) || 0)) % ew) + ew) % ew === 0;
@@ -100,13 +104,13 @@
   // follow-up habits (e.g. hang / fold laundry) appear only after their parent was done
   function isAfter(h) { return !!h.after; }
   function afterDue(h, k) { return isDone(h.after, addDays(k, -(Number(h.afterDays) || 0))); }
-  function mustDo(h, k) { if (isAfter(h)) return afterDue(h, k); if (isScheduled(h)) return !isLab(k) && scheduledOn(h, k); return h.perWeek >= 7; }
+  function mustDo(h, k) { if (isAfter(h)) return afterDue(h, k); if (isScheduled(h)) return (!isLab(k) || h.group === "cat") && scheduledOn(h, k); return h.perWeek >= 7; }
   function isWeekly(h) { return !isScheduled(h) && !isAfter(h) && h.perWeek < 7; }
-  function dueOn(h, k) { if (isAfter(h)) return afterDue(h, k); if (isScheduled(h)) return !isLab(k) && scheduledOn(h, k); return h.perWeek >= 7 || weekCountTo(h.id, addDays(k, -1)) < h.perWeek || isDone(h.id, k); }
+  function dueOn(h, k) { if (isAfter(h)) return afterDue(h, k); if (isScheduled(h)) return (!isLab(k) || h.group === "cat") && scheduledOn(h, k); return h.perWeek >= 7 || weekCountTo(h.id, addDays(k, -1)) < h.perWeek || isDone(h.id, k); }
   function weekIndex(k) { return Math.round((parseKey(mondayOf(k)) - new Date(2026, 0, 5)) / 6048e5); }
   function displayName(h, k) { if (Array.isArray(h.rotation) && h.rotation.length) { const n = ((weekIndex(k) % h.rotation.length) + h.rotation.length) % h.rotation.length; return h.name + ": " + h.rotation[n]; } return h.name; }
   function daysText(ds) { return WEEK_ORDER.filter(d => ds.includes(d)).map(d => DAYNAMES[d]).join(" & "); }
-  function freqText(h) { if (isAfter(h)) { const par = habitsAll.find(x => x.id === h.after); return (Number(h.afterDays) ? "the day after " : "after ") + (par ? par.name.toLowerCase() : "its parent task"); } if (isScheduled(h)) return daysText(h.days) + (h.everyWeeks > 1 ? ", every " + h.everyWeeks + " weeks" : ""); const p = h.perWeek; return p >= 7 ? "every day" : p === 1 ? "once a week" : p + "× a week"; }
+  function freqText(h) { if (isAfter(h)) { const par = habitsAll.find(x => x.id === h.after); return (Number(h.afterDays) ? "the day after " : "after ") + (par ? par.name.toLowerCase() : "its parent task"); } if (everyDays(h)) return everyDays(h) === 2 ? "every other day" : "every " + everyDays(h) + " days"; if (isScheduled(h)) return daysText(h.days) + (h.everyWeeks > 1 ? ", every " + h.everyWeeks + " weeks" : ""); const p = h.perWeek; return p >= 7 ? "every day" : p === 1 ? "once a week" : p + "× a week"; }
   function streakOf(h, k) {
     let d = k, n = 0, guard = 0;
     if (!isDone(h.id, d)) d = addDays(d, -1);
@@ -614,7 +618,7 @@
       const r2 = document.createElement("div"); r2.className = "mrow";
       r2.innerHTML = '<span class="grow"></span><span class="small muted">' + esc(GROUPS[h.group].label) + " · " + esc(freqText(h)) + (h.rotation ? " · rotates weekly" : "") + '</span>';
       r2.querySelector(".grow").textContent = h.name;
-      if (isScheduled(h)) {
+      if (isScheduled(h) && !everyDays(h)) {
         const chips = document.createElement("div"); chips.className = "daychips"; chips.style.flexBasis = "100%";
         WEEK_ORDER.forEach(d => {
           const on = h.days.includes(d);
@@ -1709,7 +1713,7 @@
     const err = what => () => showNotice(what + " stopped updating. Reload the page.");
     db.doc("game/state").onSnapshot(s => { game = s.exists ? Object.assign({ startDate: null }, s.data()) : { startDate: null }; applyNames(); renderRenameFields(); renderAll(); }, err("Game data"));
     db.collection("habits").onSnapshot(s => {
-      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null, minutes: timedMinutes(x) }; });
+      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null, minutes: timedMinutes(x), everyDays: Number(x.everyDays) || 0, anchor: /^\d{4}-\d{2}-\d{2}$/.test(String(x.anchor || "")) ? String(x.anchor) : null }; });
       renderAll();
     }, err("Habits"));
     db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); daysLoaded = true; renderAll(); }, err("Check-ins"));
@@ -1720,7 +1724,23 @@
     db.collection("rewards").onSnapshot(s => { rewards = s.docs.map(d => ({ id: d.id, name: String(d.data().name || "Reward"), cost: Number(d.data().cost) || 0 })); renderAll(); }, err("Rewards"));
     db.collection("purchases").onSnapshot(s => { purchases = s.docs.map(d => Object.assign({ id: d.id }, d.data())); renderAll(); }, err("Purchases"));
     fillRecipeMeta(db);
+    migrateCats(db);
   })();
+
+  // one-time: feeding and water become one daily task, the litter box every other day
+  async function migrateCats(db, tries) {
+    tries = tries || 0;
+    if (!daysLoaded || !habitsAll.length) { if (tries < 40) setTimeout(() => migrateCats(db, tries + 1), 500); return; }
+    try {
+      const flag = await db.doc("game/migrations").get(), m = flag.exists ? flag.data() : {};
+      if (m.catsV1) return;
+      const has = id => habitsAll.some(h => h.id === id && !h.archivedAt), today = todayKey();
+      if (has("cat-wetfood")) await db.doc("habits/cat-wetfood").update({ name: "Fresh water + wet food for the cat" });
+      if (has("cat-water") && has("cat-wetfood")) await db.doc("habits/cat-water").update({ archivedAt: today });
+      if (has("cat-litter")) await db.doc("habits/cat-litter").update({ everyDays: 2, anchor: isDone("cat-litter", addDays(today, -1)) ? addDays(today, 1) : today });
+      await db.doc("game/migrations").set(Object.assign({}, m, { catsV1: today }));
+    } catch (e) { console.warn("Cat schedule update failed", e); }
+  }
 
   // one-time: give recipes saved before short names and photos existed the starter set's extras
   async function fillRecipeMeta(db) {
