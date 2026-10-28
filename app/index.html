@@ -134,8 +134,9 @@
         <ul class="rules">
           <li>Each evening a monster shows up that takes 6 hits. At least 4 must be must-dos (cat basics first, then that day's scheduled chores, then dinner and dishes, then the daily tidy). The other 2 can be any task: an extra, a weekly chore, reading, or more must-dos. Kill it before midnight and nobody takes damage.</li>
           <li>Hits past the 6 are bonus loot: their XP plus 5 gold each when the monster falls.</li>
-          <li>If the monster survives, each missing hit lets an open must-do strike the member who guards it for 6 damage: Food &amp; home → the cleric, House duties → the fighter, Cat care → the familiar, Free time → the wizard, lunch prep and quests → the rogue. Habits set to specific weekdays count as daily on those days.</li>
-          <li>Weekly habits are checked on Sunday at midnight. Each missing session deals 6 damage.</li>
+          <li>A win gives XP, gold and 2 HP of healing to everyone. A loss costs 10 XP, a quarter of your gold and 2 damage to everyone. Unfinished lunch prep or an overdue quest costs Wren 5.</li>
+          <li>If the monster survives, each missing hit lets an open must-do strike the member who guards it for 4 damage, and never the same member twice in one night: Food &amp; home → the cleric, House duties → the fighter, Cat care → the familiar, Free time → the wizard, lunch prep and quests → the rogue. Habits set to specific weekdays count as daily on those days.</li>
+          <li>Weekly habits are checked on Sunday at midnight. Each missing session deals 3 damage, at most 6 per habit.</li>
           <li>Finished habits heal their guardian by 3 HP. Finishing Sunday lunch prep gives a long rest: everyone fully healed and back on their feet.</li>
           <li>A member at 0 HP goes down. They get back up after two wins in a row.</li>
           <li>If the whole party goes down, you lose a level and half your gold.</li>
@@ -342,6 +343,7 @@
       <div style="min-width:0">
         <div class="eyebrow">Focus timer</div>
         <h2 id="focusTitle">Timer</h2>
+        <ul class="focus-list small" id="focusList" hidden></ul>
       </div>
       <button type="button" class="btn-small" id="focusHide">Hide</button>
     </div>

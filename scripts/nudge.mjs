@@ -177,12 +177,12 @@ function compose(docs, now, slot) {
   }
   if (slot.name === "weekend-evening") {
     if (!first) return null;
-    return { icon: monsterIcon(monster), title: monster + " is waiting", body: "Before you log in: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 6 damage at midnight otherwise." };
+    return { icon: monsterIcon(monster), title: monster + " is waiting", body: "Before you log in: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 4 damage at midnight otherwise." };
   }
   // weekday evening
   if (!first) return { icon: partyIcon("wizard"), title: "Duties done", body: "Everything's ticked. Free time can start early tonight." };
   if (slot.at === 18 * 60 + 45 && !doneCount) return { icon: monsterIcon(monster), title: monster + " appears", body: "Home time. " + open.length + " chore" + (open.length === 1 ? "" : "s") + " tonight, start with " + label(first).toLowerCase() + "." };
-  return { icon: partyIcon(GUARD[first.group]), title: monster + " · " + open.length + " left", body: "Quick one: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 6 damage at midnight if it waits." };
+  return { icon: partyIcon(GUARD[first.group]), title: monster + " · " + open.length + " left", body: "Quick one: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 4 damage at midnight if it waits." };
 }
 
 main().catch(e => fail("Unexpected error: " + (e && e.message ? e.message : e)));

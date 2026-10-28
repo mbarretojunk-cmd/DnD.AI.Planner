@@ -1323,7 +1323,7 @@
   "habits/cat-wetfood": {
    "createdAt": "2026-10-25",
    "group": "cat",
-   "name": "Fresh water + wet food for the cat",
+   "name": "Wet food for the cat",
    "order": 11,
    "perWeek": 7
   },
@@ -1370,7 +1370,8 @@
    "group": "house",
    "name": "15-minute tidy",
    "order": 4,
-   "perWeek": 7
+   "perWeek": 7,
+   "note": "Put things back where they live · Clear the table, desk and sofa · Cups and dishes to the kitchen · Clothes to the basket or wardrobe · Rubbish and recycling out · Stop when the timer ends: no deep cleaning"
   },
   "habits/laundry-fold": {
    "after": "laundry",
@@ -1397,6 +1398,13 @@
   },
   "game/state": {
    "startDate": "2026-10-26"
+  },
+  "habits/cat-water": {
+   "createdAt": "2026-10-25",
+   "group": "cat",
+   "name": "Fresh water for the cat",
+   "order": 10,
+   "perWeek": 7
   }
  }
 }

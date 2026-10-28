@@ -520,3 +520,6 @@ details.mlog summary { padding: 4px 0; font-family: var(--body); font-weight: 70
 /* pixel portraits */
 .portrait.pix { display: inline-grid; place-items: end center; overflow: hidden; background: radial-gradient(circle at 50% 38%, #46518a, #1c2340 75%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
 .portrait.pix img { width: 84%; height: 84%; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+
+.tnote { display: block; font-size: .78rem; font-weight: 400; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+.focus-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); text-align: left; }

@@ -142,6 +142,8 @@
   function levelOf(xp) { let l = 1; while (xp >= xpFor(l + 1)) l++; return l; }
 
   const BONUS_GOLD = 5, BOSS_MAX = 6, MUST_MIN = 4;
+  // damage: each party member is struck at most once a night
+  const STRIKE = 4, LOSS_ALL = 2, WEEKLY_MISS = 3, WEEKLY_CAP = 6, ROGUE_MISS = 5;
   // which due tasks the monster is made of, most important first:
   // cat basics, then that day's scheduled chores and follow-ups, then food, then daily house, then free time
   function bossRank(h) {
@@ -174,7 +176,8 @@
     const win = hits >= need;
     const bonus = doneDaily.length + otherDone - hits;
     // if it survives, the highest-ranked open must-dos each strike back, one per missing hit
-    const missedDaily = win ? [] : daily.filter(h => !isDone(h.id, k)).slice(0, need - hits);
+    const missedDaily = [];
+    if (!win) { const struck = new Set(); daily.filter(h => !isDone(h.id, k)).forEach(h => { const m = GROUPS[h.group].member; if (missedDaily.length < need - hits && !struck.has(m)) { struck.add(m); missedDaily.push(h); } }); }
     return { k, daily, weekly, extraDue, doneExtra, doneDaily, missedDaily, doneWeekly, ms, bonus, mustNeed, anyNeed, need, hits, monster: mon[0], lore: mon[1], foeHp: 10 * need, dealt: 10 * hits, win };
   }
 
@@ -210,17 +213,17 @@
         alive().forEach(p => heal(p.id, 2));
       } else {
         const lost = Math.floor(S.gold * 0.25); S.gold -= lost; entry.gold = -lost;
-        alive().forEach(p => hurt(p.id, 4, dmg));
+        alive().forEach(p => hurt(p.id, LOSS_ALL, dmg));
       }
       // missed dailies
-      r.missedDaily.forEach(h => hurt(GROUPS[h.group].member, 6, dmg));
+      r.missedDaily.forEach(h => hurt(GROUPS[h.group].member, STRIKE, dmg));
       // Sunday checks
       if (dow(k) === 0) {
         const mon = mondayOf(k);
         if (mon >= start && !isLab(k)) {
           habitsOn(k).filter(h => isWeekly(h) && createdKey(h) <= mon).forEach(h => {
             const short = h.perWeek - weekCountTo(h.id, k);
-            if (short > 0) { hurt(GROUPS[h.group].member, 6 * short, dmg); entry.notes.push(h.name + ": " + short + " short this week"); }
+            if (short > 0) { hurt(GROUPS[h.group].member, Math.min(WEEKLY_CAP, WEEKLY_MISS * short), dmg); entry.notes.push(h.name + ": " + short + " short this week"); }
           });
         }
         const plan = planOf(addDays(k, 1));
@@ -228,10 +231,10 @@
           xp += 60; entry.rest = true; entry.notes.push("Lunch prep done. Long rest.");
           PARTY.forEach(p => { const m = S.members[p.id]; m.ko = false; m.wins = 0; m.hp = mMax(p.id); });
         } else if (isLab(k)) { entry.notes.push("Lab Sunday: lunch prep excused"); }
-        else if (k > start) { hurt("rogue", 8, dmg); entry.notes.push("Lunch prep not finished"); }
+        else if (k > start) { hurt("rogue", ROGUE_MISS, dmg); entry.notes.push("Lunch prep not finished"); }
       }
       if (isLab(k)) { xp += 15; entry.lab = true; entry.notes.push("Lab day: weekend chores excused, +15 XP overtime bonus"); }
-      quests.forEach(q => { if (q.due === k && !(questDoneDate(q) && questDoneDate(q) <= k)) { hurt("rogue", 8, dmg); entry.notes.push("Quest overdue: " + q.title); } });
+      quests.forEach(q => { if (q.due === k && !(questDoneDate(q) && questDoneDate(q) <= k)) { hurt("rogue", ROGUE_MISS, dmg); entry.notes.push("Quest overdue: " + q.title); } });
       // XP loss on defeat (never below the current level's floor)
       if (!r.win) { const floor = xpFor(S.level); const take = Math.min(10, Math.max(0, S.xp - floor)); S.xp -= take; xp -= 0; entry.xpLost = take; }
       if (gainXp(xp)) entry.notes.push("Level up! Reached level " + S.level + ".");
@@ -419,9 +422,9 @@
     else if (doneN === all.length) note = "Everything's done. Go read and play.";
     else if (R.win) note = "The monster is beaten. Anything else is bonus loot: XP and gold.";
     else if (isToday && !inFreeTime()) { const left = FREE - nowMins(); note = "To kill the monster: " + toWin + "." + (left > 0 && nowMins() >= START ? " " + Math.floor(left / 60) + " h " + pad(left % 60) + " min until free time." : "") + (mLeft ? " Start at the top." : " Pick any task, reading counts too."); }
-    else note = "To kill the monster: " + toWin + ". If it survives midnight, open must-dos cost their guardian 6 HP each.";
+    else note = "To kill the monster: " + toWin + ". If it survives midnight, open must-dos strike back: " + STRIKE + " HP, at most once per party member.";
     $("todoNote").textContent = note;
-    let firstMarked = false;
+    let firstMarked = false; const riskShown = new Set();   // a member can only be struck once a night, so show their risk once
     const row = (h, kind) => {
       const done = isDone(h.id, k);
       const b = document.createElement("button"); b.type = "button";
@@ -432,6 +435,7 @@
       const nm = b.querySelector(".tname");
       if (first) { const sh = document.createElement("span"); sh.className = "starthere"; sh.textContent = "Start here"; sh.style.display = "block"; nm.appendChild(sh); }
       nm.appendChild(document.createTextNode(displayName(h, k)));
+      if (h.note && !done) { const nt = document.createElement("span"); nt.className = "tnote"; nt.textContent = h.note.split(" · ").slice(0, 3).join(" · ") + (h.note.split(" · ").length > 3 ? " …" : ""); nm.appendChild(nt); }
       const meta = document.createElement("span"); meta.className = "tmeta";
       let mt = "";
       if (isAfter(h)) mt = freqText(h);
@@ -441,7 +445,7 @@
       meta.textContent = mt; if (mt) nm.appendChild(meta);
       const side = b.querySelector(".tside");
       const gp = PARTY.find(x => x.id === GROUPS[h.group].member);
-      if (!done && kind === "must" && mLeft > 0 && !preStart) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−6</span>'; side.classList.add("risk"); side.dataset.tip = "Must-do: a hit on the monster and +10 XP for " + gp.name + ". The monster needs " + R.mustNeed + " must-dos tonight; if it survives midnight, " + gp.name + " (" + gp.cls + ") takes 6 damage for this one."; }
+      if (!done && kind === "must" && mLeft > 0 && !preStart && !riskShown.has(gp.id) && riskShown.add(gp.id)) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.heart + '−' + STRIKE + '</span>'; side.classList.add("risk"); side.dataset.tip = "Must-do: a hit on the monster and +10 XP for " + gp.name + ". The monster needs " + R.mustNeed + " must-dos tonight; if it survives midnight, " + gp.name + " (" + gp.cls + ") can take " + STRIKE + " damage (never more than once a night)."; }
       else if (!done) { side.innerHTML = portrait(gp, 22) + '<span>' + ICON.star + '+' + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + '</span>'; side.dataset.tip = (kind === "must" ? "Must-do: a hit on the monster" : "Counts as one of the monster’s “anything” hits, or bonus loot (+" + BONUS_GOLD + " gold) once those are filled") + ". +" + (h.perWeek < 7 && !isScheduled(h) ? 15 : 10) + " XP for " + gp.name + " (" + gp.cls + ") and 3 HP of healing."; }
       const timed = h.minutes && !done && k === todayKey();
       if (timed) {
@@ -519,8 +523,8 @@
     const bonusXp = 10 * r.bonus;
     let threat = "";
     if (isToday && !r.win && viewDate >= startK) {
-      let tot = r.missedDaily.length * 6; PARTY.forEach(p => { if (!G.members[p.id].ko) tot += 4; });
-      threat = '<div class="threat-line"><span class="tl-lbl" data-tip="What happens if the monster is still alive at midnight, counted as things stand right now.">At midnight:</span><span data-tip="Damage if it survives: for each missing hit, an open must-do strikes its guardian for 6, plus 4 to every member still standing.">' + ICON.heart + '−' + tot + '</span><span data-tip="XP lost if the night is lost.">' + ICON.star + '−10</span><span data-tip="Gold lost if the night is lost: a quarter of your purse.">' + ICON.coin + '−' + Math.floor(G.gold * 0.25) + '</span></div>';
+      let tot = r.missedDaily.length * STRIKE; PARTY.forEach(p => { if (!G.members[p.id].ko) tot += LOSS_ALL; });
+      threat = '<div class="threat-line"><span class="tl-lbl" data-tip="What happens if the monster is still alive at midnight, counted as things stand right now.">At midnight:</span><span data-tip="Damage if it survives: for each missing hit, an open must-do strikes its guardian for ' + STRIKE + ' (each member at most once), plus ' + LOSS_ALL + ' to every member still standing.">' + ICON.heart + '−' + tot + '</span><span data-tip="XP lost if the night is lost.">' + ICON.star + '−10</span><span data-tip="Gold lost if the night is lost: a quarter of your purse.">' + ICON.coin + '−' + Math.floor(G.gold * 0.25) + '</span></div>';
     }
     const need = r.need, landed = r.hits;
     const mustLit = Math.min(r.doneDaily.length, r.mustNeed), anyLit = landed - mustLit;
@@ -1628,7 +1632,7 @@
   function startTimer(h, k) {
     if (timer && timer.hid !== h.id && timerLeft() > 0) { showTimer(); $("focusSwap").hidden = false; return; }
     const total = h.minutes * 60000;
-    timer = { hid: h.id, k, name: displayName(h, k), group: h.group, total, endAt: Date.now() + total, paused: null, warned: false, rang: false };
+    timer = { hid: h.id, k, name: displayName(h, k), note: h.note || "", group: h.group, total, endAt: Date.now() + total, paused: null, warned: false, rang: false };
     saveTimer();
     try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {}
     showTimer();
@@ -1637,6 +1641,8 @@
     if (!timer) return;
     $("focus").hidden = false; document.body.style.overflow = "hidden";
     $("focusTitle").textContent = timer.name;
+    const fl = $("focusList"); fl.innerHTML = ""; fl.hidden = !timer.note;
+    (timer.note || "").split(" · ").filter(Boolean).forEach(t => { const li = document.createElement("li"); li.textContent = t; fl.appendChild(li); });
     $("focusFill").style.background = GROUPS[timer.group] ? GROUPS[timer.group].color : "var(--lamp)";
     $("focusSwap").hidden = true;
     keepAwake($("focusAwake").checked);
@@ -1713,7 +1719,7 @@
     const err = what => () => showNotice(what + " stopped updating. Reload the page.");
     db.doc("game/state").onSnapshot(s => { game = s.exists ? Object.assign({ startDate: null }, s.data()) : { startDate: null }; applyNames(); renderRenameFields(); renderAll(); }, err("Game data"));
     db.collection("habits").onSnapshot(s => {
-      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null, minutes: timedMinutes(x), everyDays: Number(x.everyDays) || 0, anchor: /^\d{4}-\d{2}-\d{2}$/.test(String(x.anchor || "")) ? String(x.anchor) : null }; });
+      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null, minutes: timedMinutes(x), note: String(x.note || "").slice(0, 400), everyDays: Number(x.everyDays) || 0, anchor: /^\d{4}-\d{2}-\d{2}$/.test(String(x.anchor || "")) ? String(x.anchor) : null }; });
       renderAll();
     }, err("Habits"));
     db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); daysLoaded = true; renderAll(); }, err("Check-ins"));
@@ -1725,8 +1731,25 @@
     db.collection("purchases").onSnapshot(s => { purchases = s.docs.map(d => Object.assign({ id: d.id }, d.data())); renderAll(); }, err("Purchases"));
     fillRecipeMeta(db);
     migrateCats(db);
+    migrateCatsV2(db);
   })();
 
+  // one-time (v2): water and wet food are separate again, so the cat's care feels rewarding; the tidy gets a checklist
+  async function migrateCatsV2(db, tries) {
+    tries = tries || 0;
+    if (!daysLoaded || !habitsAll.length) { if (tries < 40) setTimeout(() => migrateCatsV2(db, tries + 1), 500); return; }
+    try {
+      const flag = await db.doc("game/migrations").get(), m = flag.exists ? flag.data() : {};
+      if (m.catsV2) return;
+      if (!m.catsV1) { setTimeout(() => migrateCatsV2(db, tries + 1), 1500); return; }
+      const h = id => habitsAll.find(x => x.id === id);
+      if (h("cat-water")) await db.doc("habits/cat-water").update({ archivedAt: null, name: "Fresh water for the cat" });
+      if (h("cat-wetfood")) await db.doc("habits/cat-wetfood").update({ name: "Wet food for the cat" });
+      if (h("tidy-15") && !h("tidy-15").note) await db.doc("habits/tidy-15").update({ note: "Put things back where they live \u00b7 Clear the table, desk and sofa \u00b7 Cups and dishes to the kitchen \u00b7 Clothes to the basket or wardrobe \u00b7 Rubbish and recycling out \u00b7 Stop when the timer ends: no deep cleaning" });
+      const cur = await db.doc("game/migrations").get();
+      await db.doc("game/migrations").set(Object.assign({}, cur.exists ? cur.data() : {}, { catsV2: todayKey() }));
+    } catch (e) { console.warn("Cat/tidy update failed", e); }
+  }
   // one-time: feeding and water become one daily task, the litter box every other day
   async function migrateCats(db, tries) {
     tries = tries || 0;
