@@ -8,6 +8,9 @@
 //   VAPID_PRIVATE_KEY    private half of the notification key pair
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const DMLINES = require("../app/dmlines.js");   // the DM's pre-written lines, shared with the app
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SECRET = (process.env.SUPABASE_SECRET_KEY || "").trim().replace(/^["']|["']$/g, "");
@@ -40,7 +43,7 @@ const weekIndex = k => Math.round((parseKey(mondayOf(k)) - parseKey("2026-01-05"
 
 /* reminder slots: [name, minute of day, applies on weekday?] */
 const SLOTS = [
-  ["weekday", 18 * 60 + 45, "wd"], ["weekday", 19 * 60 + 45, "wd"], ["weekday", 20 * 60 + 45, "wd"],
+  ["commute", 17 * 60 + 45, "wd"], ["weekday", 18 * 60 + 45, "wd"], ["weekday", 19 * 60 + 45, "wd"], ["weekday", 20 * 60 + 45, "wd"],
   ["weekend-morning", 10 * 60 + 45, "we"], ["weekend-evening", 18 * 60 + 45, "we"],
   ["evening-end", 21 * 60 + 45, "all"]
 ];
@@ -168,21 +171,34 @@ function compose(docs, now, slot) {
     .sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || (a.order || 0) - (b.order || 0));
   const doneCount = mustDone + otherDone;
   const anyOnly = open.length && mustDone >= mustNeed;   // must-dos covered, just needs any task
-  if (slot.name === "evening-end") {
-    const mon = MONSTERS[hash(today) % MONSTERS.length];
-    if (!need) return null;
-    if (hits >= need) return { icon: monsterIcon(mon), title: "Victory over the " + mon + "!", body: "The party rests. Tap to read tonight's tale and meet tomorrow's foe.", url: "./#tale" };
-    const left = need - hits;
-    return { icon: monsterIcon(mon), title: "The " + mon + " still stands", body: left + " more hit" + (left === 1 ? "" : "s") + " before midnight" + (anyOnly ? ": any task will do, even your reading." : ": start with " + label(open[0]).toLowerCase() + ".") };
-  }
-  if (anyOnly && slot.name !== "weekend-morning") {
-    const left = need - hits;
-    const mon = MONSTERS[hash(today) % MONSTERS.length];
-    return { icon: monsterIcon(mon), title: mon + " is almost down", body: left + " more hit" + (left === 1 ? "" : "s") + " of anything finishes it: a chore, the laundry, or your reading." };
-  }
+  // ---------- the DM's voice ----------
+  const EST = { "cat-water": 1, "cat-wetfood": 2, "cat-litter": 5, "cat-full-litter": 15, "cat-play": 10, bins: 3, dishes: 15, "cook-dinner": 30, "tidy-15": 15, vacuum: 20, "bathroom-clean": 20, "mop-bathroom": 10, "bedroom-clean": 20, "kitchen-clean": 15, "kitchen-deep": 30, "saturday-deep-clean": 45, "life-admin": 20, laundry: 5, "laundry-hang": 10, "laundry-fold": 10, "freezer-lunch": 1, "offline-hobby": 30, "read-20": 30 };
+  const est = h => Number(h.est) || (/(\d{1,3})\s*-?\s*min/i.exec(h.name || "") || [])[1] * 1 || EST[h.id] || { cat: 3, house: 15, food: 15, hobby: 30 }[h.group] || 10;
+  const style = ((docs.get("settings/dm") || {}).style) || "classic";
   const monster = MONSTERS[hash(today) % MONSTERS.length];
-  const first = open[0];
-  const who = first ? names[GUARD[first.group]] : "";
+  const left = Math.max(0, need - hits);
+  const otherDue = habits.filter(h => !bossIds.has(h.id) && !done(h.id, today) && (isDue(h) || (Number(h.perWeek) < 7 && !(Array.isArray(h.days) && h.days.length) && !h.after)));
+  const pool = (mustDone < mustNeed ? boss.filter(h => !done(h.id, today)) : boss.filter(h => !done(h.id, today)).concat(otherDue)).sort((a, b) => est(a) - est(b));
+  const sug = pool[0];
+  const task = h => { const n = label(h).replace(/\s*\(.*?\)/g, "").split(/[:,]| \+ /)[0].replace(/ (for|with) the cat$/i, "").trim(); return n.charAt(0).toLowerCase() + n.slice(1); };
+  const shopLeft = ((docs.get("shop/list") || {}).items || []).filter(i => i && !i.got).length;
+  const v = { C: names.cleric, F: names.fighter, W: names.wizard, R: names.rogue, K: names.familiar, M: monster, H: left, T: sug ? task(sug) : "", N: sug ? est(sug) : "", G: sug ? names[GUARD[sug.group]] : "", L: Math.max(0, 21 * 60 + 30 - now.mins), S: shopLeft };
+  const say = sit => DMLINES.line(sit, v, today + slot.key, style);
+  const sugIcon = sug ? partyIcon(GUARD[sug.group]) : monsterIcon(monster);
+
+  if (slot.name === "commute") {
+    // tonight's dinner from this week's plan (or next week's, once lunch prep has moved on)
+    const nextMon = addDays(today, (7 - dow) % 7 + 1), thisMon = addDays(nextMon, -7);
+    const dinners = [nextMon, thisMon].flatMap(w => ((docs.get("plans/" + w) || {}).dinners || [])).map(d => docs.get("recipes/" + d.id)).filter(Boolean);
+    const rc = dinners.length ? dinners[dow % dinners.length] : null;
+    if (rc) { v.D = rc.short || rc.name; v.DM = rc.minutes || 30; }
+    return { icon: partyIcon("cleric"), title: "Homeward, hero", body: say(rc ? "commute" : "commute_noplan") };
+  }
+  if (slot.name === "evening-end") {
+    if (!need) return null;
+    if (hits >= need) return { icon: monsterIcon(monster), title: "Victory over the " + monster + "!", body: say("won_free") + " Tap for tonight's tale.", url: "./#tale" };
+    return { icon: monsterIcon(monster), title: "The " + monster + " still stands", body: say("free_unfinished") };
+  }
 
   // Sunday lunch prep (not on a lab Sunday or a skipped week)
   let prepLeft = 0;
@@ -190,22 +206,18 @@ function compose(docs, now, slot) {
     const plan = docs.get("plans/" + addDays(today, 1));
     if (!plan || !plan.skipped) prepLeft = ["plan", "pantry", "shop", "cook", "portion"].filter(s => !(plan && plan.steps && plan.steps[s])).length;
   }
-
   if (slot.name === "weekend-morning") {
     if (!open.length && !prepLeft) return null;
-    if (lab) return { icon: partyIcon("rogue"), title: "Lab day", body: first ? "Weekend chores are off. Just " + first.name.toLowerCase() + " when you're home." : "Weekend chores are off. Good luck in the lab." };
-    const cuOpen = open.filter(h => catchUp.has(h.id)).length;
-    const what = (open.length ? open.length + " chore" + (open.length === 1 ? "" : "s") + (cuOpen ? " (" + cuOpen + " catch-up from the week)" : "") : "") + (open.length && prepLeft ? " + " : "") + (prepLeft ? "lunch prep" : "");
-    return { icon: first ? partyIcon(GUARD[first.group]) : partyIcon("rogue"), title: (dow === 6 ? "Saturday" : "Sunday") + " block", body: what + ". Start with " + (first ? label(first).toLowerCase() : "the lunch prep") + ", then the day is yours." };
+    if (lab) return { icon: partyIcon("rogue"), title: "Lab day", body: "Weekend chores are off today. Just the cat's basics when you're home. Good luck in the lab." };
+    const cuOpen = open.filter(h => catchUp.has(h.id)).length; v.X = cuOpen;
+    return { icon: sugIcon, title: (dow === 6 ? "Saturday" : "Sunday") + " quest", body: say(cuOpen ? "weekend_catchup" : "open_first") + (prepLeft ? " Lunch prep is on today's list too." : "") };
   }
-  if (slot.name === "weekend-evening") {
-    if (!first) return null;
-    return { icon: monsterIcon(monster), title: monster + " is waiting", body: "Before you log in: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 4 damage at midnight otherwise." };
-  }
+  if (hits >= need) return null;   // monster already beaten: no nagging
+  if (slot.name === "weekend-evening") return { icon: sugIcon, title: monster + " · " + left + " hit" + (left === 1 ? "" : "s") + " left", body: say(anyOnly ? "any_left" : left <= 2 ? "almost" : "next") };
   // weekday evening
-  if (!first) return { icon: partyIcon("wizard"), title: "Duties done", body: "Everything's ticked. Free time can start early tonight." };
-  if (slot.at === 18 * 60 + 45 && !doneCount) return { icon: monsterIcon(monster), title: monster + " appears", body: "Home time. " + open.length + " chore" + (open.length === 1 ? "" : "s") + " tonight, start with " + label(first).toLowerCase() + "." };
-  return { icon: partyIcon(GUARD[first.group]), title: monster + " · " + open.length + " left", body: "Quick one: " + label(first).toLowerCase() + ". " + who.charAt(0).toUpperCase() + who.slice(1) + " takes 4 damage at midnight if it waits." };
+  if (slot.at === 18 * 60 + 45 && !doneCount) return { icon: monsterIcon(monster), title: monster + " appears", body: say("open_first") };
+  const sit = anyOnly ? "any_left" : left <= 2 ? "almost" : slot.at >= 20 * 60 + 45 ? "late_push" : "next";
+  return { icon: sugIcon, title: anyOnly ? monster + " is almost down" : monster + " · " + left + " hit" + (left === 1 ? "" : "s") + " left", body: say(sit) };
 }
 
 main().catch(e => fail("Unexpected error: " + (e && e.message ? e.message : e)));

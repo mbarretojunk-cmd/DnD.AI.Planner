@@ -138,7 +138,9 @@
       d.set(d.keys.KEY, $("setKey").value.trim());
       d.set(d.keys.MODEL, $("setModel").value);
       d.set(d.keys.STYLE, $("setStyle").value);
-      $("setStatus").textContent = "Saved on this device.";
+      // the DM's style also goes to the reminders, so they speak the same way
+      window.Store.ready().then(db => db && db.doc("settings/dm").set({ style: $("setStyle").value })).catch(() => {});
+      $("setStatus").textContent = "Saved. The key stays on this device; the DM style also applies to your reminders.";
     });
     $("setExport").addEventListener("click", () => {
       const data = JSON.stringify(window.Store.exportAll(), null, 1);

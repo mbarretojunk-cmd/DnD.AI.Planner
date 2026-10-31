@@ -516,7 +516,7 @@
       const done = isDone(h.id, k);
       const b = document.createElement("button"); b.type = "button";
       const first = !done && !firstMarked && !isFuture && kind !== "free"; if (first) firstMarked = true;
-      b.className = "titem" + (done ? " done" : "") + (first ? " first" : ""); b.setAttribute("aria-pressed", String(done));
+      b.className = "titem" + (done ? " done" : "") + (first ? " first" : ""); b.setAttribute("aria-pressed", String(done)); b.dataset.hid = h.id;
       b.style.setProperty("--c", GROUPS[h.group].color);
       b.innerHTML = '<span class="check">' + CHECK + '</span><span class="tname"></span><span class="tside"></span>';
       const nm = b.querySelector(".tname");
@@ -530,6 +530,7 @@
       else if (isScheduled(h)) mt = freqText(h);
       else if (h.perWeek < 7) mt = weekCountTo(h.id, k) + "/" + h.perWeek + " this week";
       else { const st = streakOf(h, k); if (st > 1) mt = st + " in a row"; }
+      if (!done && !h.minutes) mt = (mt ? mt + " · " : "") + "~" + estMins(h) + " min";
       meta.textContent = mt; if (mt) nm.appendChild(meta);
       const side = b.querySelector(".tside");
       const gp = PARTY.find(x => x.id === GROUPS[h.group].member);
@@ -599,6 +600,7 @@
     $("listTitle").textContent = isToday ? "Tonight" : isFuture ? "Coming up" : "That evening";
     renderTimeline();
     setTimeout(maybeTale, 0);
+    setTimeout(() => maybeDm(false), 1200);
 
     const list = visibleHabits();
     const cuShown = catchUps(viewDate);
@@ -1274,7 +1276,7 @@
   function toggleDay(hid, k) {
     if (!ready()) return;
     const cur = Object.assign({}, (days[k] && days[k].done) || {});
-    if (cur[hid]) delete cur[hid]; else { cur[hid] = true; if (k === todayKey()) { lastHit = Date.now(); sfx("tick"); } }
+    if (cur[hid]) delete cur[hid]; else { cur[hid] = true; if (k === todayKey()) { lastHit = Date.now(); sfx("tick"); dmReact(hid, k); } }
     skip = 0; writeDay(k, { done: cur });
     if (lastHit && Date.now() - lastHit < 100) setTimeout(() => { if (tab === "tonight") renderTonight(); }, 1700);
   }
@@ -1402,7 +1404,7 @@
     tab = t;
     TABS.forEach(x => { $("tab-" + x).setAttribute("aria-selected", String(x === t)); $("view-" + x).hidden = x !== t; });
     if (!fromHash) { try { history.replaceState(null, "", "#" + t); } catch (e) {} }
-    $("sectionTitle").textContent = TAB_TITLES[t];
+    $("sectionTitle").textContent = TAB_TITLES[t]; hideDm();
     closeDrawer();
     window.scrollTo(0, 0);
     renderAll();
@@ -1707,6 +1709,76 @@
   }
   window.addEventListener("hashchange", () => { if (location.hash === "#tale") { taleWanted = true; maybeTale(); } });
   if (navigator.serviceWorker) navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.open === "tale") { taleWanted = true; maybeTale(); } });
+
+  /* ================= the DM pops in: one line of encouragement, with the cheapest next step ================= */
+  const EST = { "cat-water": 1, "cat-wetfood": 2, "cat-litter": 5, "cat-full-litter": 15, "cat-play": 10, bins: 3, dishes: 15, "cook-dinner": 30, "tidy-15": 15, vacuum: 20, "bathroom-clean": 20, "mop-bathroom": 10, "bedroom-clean": 20, "kitchen-clean": 15, "kitchen-deep": 30, "saturday-deep-clean": 45, "life-admin": 20, laundry: 5, "laundry-hang": 10, "laundry-fold": 10, "freezer-lunch": 1, "offline-hobby": 30, "read-20": 30 };
+  function estMins(h) { return Number(h.est) || h.minutes || EST[h.id] || { cat: 3, house: 15, food: 15, hobby: 30 }[h.group] || 10; }
+  function dmStyle() { try { return (window.DM && window.DM.get(window.DM.keys.STYLE)) || "classic"; } catch (e) { return "classic"; } }
+  function dmVars(extra) { const v = {}; PARTY.forEach(p => { v[{ cleric: "C", fighter: "F", wizard: "W", rogue: "R", familiar: "K" }[p.id]] = p.name; }); return Object.assign(v, extra || {}); }
+  // what should the DM say right now, and which task should it suggest?
+  function dmSituation(k) {
+    const r = evaluateDay(k, G.level); if (!r.need || (days[k] && days[k].rest)) return null;
+    const hitsLeft = Math.max(0, r.need - r.hits), mustLeft = Math.max(0, r.mustNeed - Math.min(r.doneDaily.length, r.mustNeed));
+    const openMust = r.daily.filter(h => !isDone(h.id, k)), openAny = openMust.concat(r.extraDue.filter(h => !isDone(h.id, k)), r.weekly.filter(h => dueOn(h, k) && !isDone(h.id, k)));
+    const pool = mustLeft ? openMust : openAny, byTime = pool.slice().sort((a, b) => estMins(a) - estMins(b));
+    const sug = byTime[0] || null, cu = catchUps(k);
+    const cook = r.daily.concat(r.extraDue).find(h => h.link === "dinner" && !isDone(h.id, k)), pd = plannedDinners(k)[0];
+    const v = dmVars({ M: r.monster, H: hitsLeft, T: sug ? shortTask(sug, k) : "", N: sug ? estMins(sug) : "", G: sug ? (PARTY.find(p => p.id === GROUPS[sug.group].member) || {}).name : "", L: Math.max(0, FREE - nowMins()), X: [...cu.keys()].filter(id => !isDone(id, k)).length });
+    const anyDone = r.doneDaily.length + r.doneExtra.length + r.doneWeekly.length;
+    let sit, st_sug = null;
+    if (r.win) sit = inFreeTime() ? "won_free" : (isWeekend(k) ? "weekend_free" : "won");
+    else if (isWeekend(k) && v.X && nowMins() < 15 * 60) { sit = "weekend_catchup"; const c = openAny.filter(h => cu.has(h.id)).sort((a, b) => estMins(a) - estMins(b))[0]; if (c) st_sug = c; }
+    else if (cook && pd && nowMins() >= 18 * 60 && nowMins() < 20 * 60 && hash(k + "dn") % 2 === 0) { sit = "dinner"; v.D = shortName(pd.rc); v.DM = pd.rc.minutes || 30; }
+    else if (inFreeTime()) sit = "free_unfinished";
+    else if (!anyDone) sit = "open_first";
+    else if (!mustLeft) sit = "any_left";
+    else if (hitsLeft <= 2) sit = "almost";
+    else if (v.L <= 60 && nowMins() >= START) sit = "late_push";
+    else sit = "next";
+    return { sit, v, sug: st_sug || sug, r };
+  }
+  var dmTimer = null;
+  function readDm() { try { return JSON.parse(localStorage.getItem("eah-dmpop") || "{}"); } catch (e) { return {}; } }
+  function showDm(text, sug, k) {
+    const el = $("dmPop"); if (!el || !text) return;
+    el.querySelector(".dmp-text").textContent = text;
+    const go = el.querySelector(".dmp-go");
+    go.hidden = !sug; go.textContent = sug && sug.minutes ? "Start timer" : "Let's do it";
+    go.onclick = () => { hideDm(); if (!sug) return; if (sug.minutes && !isDone(sug.id, k)) { startTimer(sug, k); return; } const rows = [...document.querySelectorAll("#todo .titem")].filter(b => b.dataset.hid === sug.id); const row = rows[0]; if (row) { row.scrollIntoView({ behavior: "smooth", block: "center" }); row.classList.add("flash"); setTimeout(() => row.classList.remove("flash"), 1800); } };
+    el.hidden = false; requestAnimationFrame(() => el.classList.add("in"));
+    clearTimeout(dmTimer); dmTimer = setTimeout(hideDm, 15000);
+  }
+  function hideDm() { const el = $("dmPop"); if (!el) return; el.classList.remove("in"); clearTimeout(dmTimer); setTimeout(() => { if (!el.classList.contains("in")) el.hidden = true; }, 300); }
+  // on opening Tonight: at most every 35 minutes, or straight away when the situation changes meaningfully
+  function maybeDm(force) {
+    const k = todayKey(); if (tab !== "tonight" || viewDate !== k || !daysLoaded || !$("tale").hidden || !$("focus").hidden) return;
+    if (!game.startDate || k < game.startDate || nowMins() < 6 * 60) return;
+    const st = dmSituation(k); if (!st) return;
+    const last = readDm(), now = Date.now(), changed = last.k !== k || last.sit !== st.sit;
+    if (!force && !(now - (last.at || 0) > 35 * 60000 || (changed && ["almost", "any_left", "won", "won_free", "free_unfinished", "weekend_free"].includes(st.sit) && now - (last.at || 0) > 60000))) return;
+    try { localStorage.setItem("eah-dmpop", JSON.stringify({ at: now, sit: st.sit, k })); } catch (e) {}
+    const seed = k + Math.floor(now / 1800000);
+    showDm(DMLINES.line(st.sit, st.v, seed, dmStyle()), st.r.win ? (st.sug && !inFreeTime() ? st.sug : null) : st.sug, k);
+  }
+  // after a tick: a short reaction plus the next step
+  function dmReact(hid, k) {
+    if (!window.DMLINES || k !== todayKey()) return;
+    setTimeout(() => {
+      if (tab !== "tonight" || !$("tale").hidden || !$("focus").hidden) return;
+      const st = dmSituation(k); if (!st) return;
+      const h = habitsAll.find(x => x.id === hid), g = h ? (PARTY.find(p => p.id === GROUPS[h.group].member) || {}).name : "";
+      const last = readDm(), now = Date.now();
+      const milestone = st.r.win || st.sit === "almost" || st.sit === "any_left";
+      if (!milestone && now - (last.reactAt || 0) < 4 * 60000) return;
+      try { localStorage.setItem("eah-dmpop", JSON.stringify({ at: now, reactAt: now, sit: st.sit, k })); } catch (e) {}
+      const seed = k + hid + now;
+      const react = DMLINES.line(st.r.win && (st.r.hits === st.r.need) && last.sit !== "won" && last.sit !== "won_free" ? "react_kill" : "react", Object.assign({}, st.v, { G: g }), seed, dmStyle());
+      const next = st.r.win ? "" : DMLINES.line(st.sit, st.v, seed, dmStyle());
+      showDm((react + " " + next).trim(), st.r.win ? null : st.sug, k);
+    }, 1700);
+  }
+  $("dmPop").querySelector(".dmp-x").onclick = hideDm;
+  try { $("dmPop").querySelector(".dmp-av").innerHTML = ART.svg("hooded-figure", 30, "#ffd27a"); } catch (e) {}
 
   /* ================= focus timer for timed habits ================= */
   function timedMinutes(x) {

@@ -339,6 +339,10 @@
   <button type="button" class="ditem" id="openSettings"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span><b>Settings</b><small>Sync, reminders, backup, AI key</small></span></button>
 </nav>
 
+<div id="dmPop" class="dmpop" role="status" aria-live="polite" hidden>
+  <span class="dmp-av" aria-hidden="true"></span>
+  <div class="dmp-body"><small>The Dungeon Master</small><p class="dmp-text"></p><div class="dmp-act"><button type="button" class="btn-small dmp-go">Let's do it</button><button type="button" class="btn-quiet dmp-x">Not now</button></div></div>
+</div>
 <div id="tale" class="tale" role="dialog" aria-modal="true" aria-label="Tonight’s tale" hidden></div>
 
 <div id="focus" class="focus" role="dialog" aria-modal="true" aria-labelledby="focusTitle" hidden>
@@ -391,6 +395,7 @@
 <script src="tips.js"></script>
 <script src="art.js"></script>
 <script src="story.js"></script>
+<script src="dmlines.js"></script>
 <script src="vendor/confetti.js"></script>
 <script src="app.js"></script>
 <script src="dm.js"></script>
