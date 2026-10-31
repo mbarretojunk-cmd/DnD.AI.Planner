@@ -146,19 +146,44 @@
   const STRIKE = 4, LOSS_ALL = 2, WEEKLY_MISS = 3, WEEKLY_CAP = 6, ROGUE_MISS = 5;
   // which due tasks the monster is made of, most important first:
   // cat basics, then that day's scheduled chores and follow-ups, then food, then daily house, then free time
-  function bossRank(h) {
+  // weekends: chores missed on weekdays (and weekly targets still short) come back first in line
+  function catchUps(k) {
+    const out = new Map(), w = dow(k), start = game.startDate;
+    if ((w !== 6 && w !== 0) || !start) return out;
+    const mon = mondayOf(k);
+    habitsOn(k).forEach(h => {
+      if (h.group === "cat" || h.group === FREE_GROUP || isAfter(h) || everyDays(h) || h.archivedAt) return;
+      if (isScheduled(h)) {
+        if (mustDo(h, k)) return;
+        for (let i = 0; i < 5; i++) {
+          const d = addDays(mon, i); if (d >= k || d < start || !activeOn(h, d)) continue;
+          if (mustDo(h, d) && !isDone(h.id, d)) {
+            let caught = false; for (let e = addDays(d, 1); e < k; e = addDays(e, 1)) if (isDone(h.id, e)) caught = true;
+            if (!caught) { out.set(h.id, "missed " + DAYNAMES[dow(d)]); break; }
+          }
+        }
+      } else if (isWeekly(h) && mon >= start) {
+        const left = h.perWeek - weekCountTo(h.id, addDays(k, -1));
+        if (left > 0) out.set(h.id, left + " still to do this week");
+      }
+    });
+    return out;
+  }
+  function bossRank(h, cu) {
+    if (cu && cu.has(h.id)) return 0.5;
     if (isScheduled(h) || isAfter(h)) return 1;
     return { cat: 0, food: 2, house: 3 }[h.group] ?? 4;
   }
-  function bossTasks(hs, k) {
-    return hs.filter(h => mustDo(h, k)).sort((a, b) => bossRank(a) - bossRank(b) || (a.order || 0) - (b.order || 0) || (a.id < b.id ? -1 : 1));
+  function bossTasks(hs, k, cu) {
+    cu = cu || new Map();
+    return hs.filter(h => mustDo(h, k) || cu.has(h.id)).sort((a, b) => bossRank(a, cu) - bossRank(b, cu) || (a.order || 0) - (b.order || 0) || (a.id < b.id ? -1 : 1));
   }
   function evaluateDay(k, level) {
-    const hs = habitsOn(k);
-    const due = bossTasks(hs, k);
+    const hs = habitsOn(k), cu = catchUps(k);
+    const due = bossTasks(hs, k, cu);
     const daily = due.slice(0, BOSS_MAX);               // the monster: these must be done
     const extraDue = due.slice(BOSS_MAX);               // due today but only bonus
-    const weekly = hs.filter(h => isWeekly(h));
+    const weekly = hs.filter(h => isWeekly(h) && !cu.has(h.id));
     const doneDaily = daily.filter(h => isDone(h.id, k));
     const doneExtra = extraDue.filter(h => isDone(h.id, k));
     const doneWeekly = weekly.filter(h => isDone(h.id, k));
@@ -464,10 +489,12 @@
     const isFree = h => h.group === FREE_GROUP;
     const sortFn = (a, b) => gOrder.indexOf(a.group) - gOrder.indexOf(b.group) || (a.order || 0) - (b.order || 0);
     const bossSet = new Set(evaluateDay(k, G.level).daily.map(h => h.id)), isBoss = h => bossSet.has(h.id);
-    const must = shownList.filter(h => !isFree(h) && isBoss(h)).sort(sortFn);
-    const opt = shownList.filter(h => !isFree(h) && !isBoss(h)).sort(sortFn);
+    const CU = catchUps(k), isCu = h => CU.has(h.id);
+    const catchList = shownList.filter(h => !isFree(h) && isCu(h)).sort((a, b) => (isBoss(b) - isBoss(a)) || sortFn(a, b));
+    const must = shownList.filter(h => !isFree(h) && isBoss(h) && !isCu(h)).sort(sortFn);
+    const opt = shownList.filter(h => !isFree(h) && !isBoss(h) && !isCu(h)).sort(sortFn);
     const free = shownList.filter(h => isFree(h)).sort(sortFn);
-    const all = must.concat(opt, free);
+    const all = catchList.concat(must, opt, free);
     const doneN = all.filter(h => isDone(h.id, k)).length;
     $("count").textContent = all.length ? doneN + " / " + all.length + " done" : "";
     $("todoFill").style.width = (all.length ? doneN / all.length * 100 : 0) + "%";
@@ -498,7 +525,8 @@
       if (h.note && !done) { const nt = document.createElement("span"); nt.className = "tnote"; nt.textContent = h.note.split(" · ").slice(0, 3).join(" · ") + (h.note.split(" · ").length > 3 ? " …" : ""); nm.appendChild(nt); }
       const meta = document.createElement("span"); meta.className = "tmeta";
       let mt = "";
-      if (isAfter(h)) mt = freqText(h);
+      if (CU.has(h.id)) mt = "↩ " + CU.get(h.id);
+      else if (isAfter(h)) mt = freqText(h);
       else if (isScheduled(h)) mt = freqText(h);
       else if (h.perWeek < 7) mt = weekCountTo(h.id, k) + "/" + h.perWeek + " this week";
       else { const st = streakOf(h, k); if (st > 1) mt = st + " in a row"; }
@@ -523,9 +551,10 @@
       const sec = document.createElement("div"); sec.className = "tsec";
       sec.innerHTML = '<div class="tsec-h"><span class="eyebrow"></span><span class="small muted"></span></div>';
       sec.querySelector(".eyebrow").textContent = title; sec.querySelector(".small").textContent = sub;
-      open.forEach(h => { sec.appendChild(row(h, kind)); if (h.link === "dinner" && !isFuture) { const pd = plannedDinners(k); if (pd.length) sec.appendChild(recipeChips(pd)); } });
+      open.forEach(h => { sec.appendChild(row(h, typeof kind === "function" ? kind(h) : kind)); if (h.link === "dinner" && !isFuture) { const pd = plannedDinners(k); if (pd.length) sec.appendChild(recipeChips(pd)); } });
       box.appendChild(sec);
     };
+    section("Catch-up from the week", "missed on weekdays · first in line", catchList, h => isBoss(h) ? "must" : "opt");
     section("Must-dos", "the monster needs " + R.mustNeed + " of these", must, "must");
     // Sunday lunch prep shows up as part of the day's list
     const prepWeek = addDays(k, 1), prepPlan = planOf(prepWeek);
@@ -572,7 +601,8 @@
     setTimeout(maybeTale, 0);
 
     const list = visibleHabits();
-    const shownList = habitsOn(viewDate).filter(h => dueOn(h, viewDate));
+    const cuShown = catchUps(viewDate);
+    const shownList = habitsOn(viewDate).filter(h => dueOn(h, viewDate) || cuShown.has(h.id));
     const doneN = shownList.filter(h => isDone(h.id, viewDate)).length;
     $("count").textContent = shownList.length ? doneN + " of " + shownList.length + " done" : "";
 

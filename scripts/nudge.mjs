@@ -133,10 +133,32 @@ function compose(docs, now, slot) {
     }
     return Number(h.perWeek) >= 7;
   };
+  // weekends: weekday chores that were missed, and weekly targets still short, come first (same rule as the app)
+  const catchUp = new Set();
+  if ((dow === 6 || dow === 0) && game.startDate) {
+    const mon = addDays(today, -((dow + 6) % 7)), dDow = k => new Date(k + "T12:00:00Z").getUTCDay();
+    const labOn = k => !!((docs.get("days/" + k) || {}).lab);
+    habits.forEach(h => {
+      if (h.group === "cat" || h.group === "hobby" || h.after || Number(h.everyDays) >= 2) return;
+      if (Array.isArray(h.days) && h.days.length) {
+        if (isDue(h)) return;
+        for (let i = 0; i < 5; i++) {
+          const d = addDays(mon, i); if (d >= today || d < game.startDate || labOn(d) || !h.days.includes(dDow(d))) continue;
+          const ew = Number(h.everyWeeks) || 1; if (ew > 1 && (((weekIndex(d) - (Number(h.weekOffset) || 0)) % ew) + ew) % ew !== 0) continue;
+          if (done(h.id, d)) continue;
+          let caught = false; for (let e = addDays(d, 1); e < today; e = addDays(e, 1)) if (done(h.id, e)) caught = true;
+          if (!caught) { catchUp.add(h.id); break; }
+        }
+      } else if (Number(h.perWeek) < 7 && mon >= game.startDate) {
+        let c = 0; for (let e = mon; e < today; e = addDays(e, 1)) if (done(h.id, e)) c++;
+        if (c < Number(h.perWeek)) catchUp.add(h.id);
+      }
+    });
+  }
   // the monster is the 6 highest-ranked due tasks (same ranking as the app); the rest are extras
-  const rank = h => (h.after || (Array.isArray(h.days) && h.days.length) || Number(h.everyDays) >= 2) ? 1 : ({ cat: 0, food: 2, house: 3 }[h.group] ?? 4);
+  const rank = h => catchUp.has(h.id) ? 0.5 : (h.after || (Array.isArray(h.days) && h.days.length) || Number(h.everyDays) >= 2) ? 1 : ({ cat: 0, food: 2, house: 3 }[h.group] ?? 4);
   // and it takes 6 hits: at least 4 of those must-dos, the rest any task
-  const boss = habits.filter(isDue).sort((a, b) => rank(a) - rank(b) || (a.order || 0) - (b.order || 0) || (a.id < b.id ? -1 : 1)).slice(0, 6);
+  const boss = habits.filter(h => isDue(h) || catchUp.has(h.id)).sort((a, b) => rank(a) - rank(b) || (a.order || 0) - (b.order || 0) || (a.id < b.id ? -1 : 1)).slice(0, 6);
   const bossIds = new Set(boss.map(h => h.id));
   const mustNeed = Math.min(4, boss.length), mustDone = boss.filter(h => done(h.id, today)).length;
   const otherDone = habits.filter(h => !bossIds.has(h.id) && done(h.id, today)).length;
@@ -172,7 +194,8 @@ function compose(docs, now, slot) {
   if (slot.name === "weekend-morning") {
     if (!open.length && !prepLeft) return null;
     if (lab) return { icon: partyIcon("rogue"), title: "Lab day", body: first ? "Weekend chores are off. Just " + first.name.toLowerCase() + " when you're home." : "Weekend chores are off. Good luck in the lab." };
-    const what = (open.length ? open.length + " chore" + (open.length === 1 ? "" : "s") : "") + (open.length && prepLeft ? " + " : "") + (prepLeft ? "lunch prep" : "");
+    const cuOpen = open.filter(h => catchUp.has(h.id)).length;
+    const what = (open.length ? open.length + " chore" + (open.length === 1 ? "" : "s") + (cuOpen ? " (" + cuOpen + " catch-up from the week)" : "") : "") + (open.length && prepLeft ? " + " : "") + (prepLeft ? "lunch prep" : "");
     return { icon: first ? partyIcon(GUARD[first.group]) : partyIcon("rogue"), title: (dow === 6 ? "Saturday" : "Sunday") + " block", body: what + ". Start with " + (first ? label(first).toLowerCase() : "the lunch prep") + ", then the day is yours." };
   }
   if (slot.name === "weekend-evening") {
