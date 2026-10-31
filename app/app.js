@@ -203,7 +203,8 @@
       const dmg = [];
       const entry = { k, monster: r.monster, win: r.win, xp: 0, gold: 0, notes: [] };
       // XP and healing
-      let xp = 10 * (r.doneDaily.length + r.doneExtra.length) + 15 * r.doneWeekly.length + 10 * r.ms;
+      const gHrs = gameXpHours(k), gXp = Math.round(GAME_XP * gHrs);
+      let xp = 10 * (r.doneDaily.length + r.doneExtra.length) + 15 * r.doneWeekly.length + 10 * r.ms + gXp;
       quests.forEach(q => { if (questDoneDate(q) === k) { xp += 40; entry.notes.push("Quest done: " + q.title); } });
       [...r.doneDaily, ...r.doneExtra, ...r.doneWeekly].forEach(h => heal(GROUPS[h.group].member, 3));
       for (let i = 0; i < r.ms; i++) heal("rogue", 3);
@@ -248,6 +249,7 @@
       if (r.ms) { mg.rogue += 10 * r.ms; did.rogue.push(r.ms + " milestone" + (r.ms === 1 ? "" : "s")); }
       quests.forEach(q => { if (questDoneDate(q) === k) { mg.rogue += 20; did.rogue.push("Quest: " + q.title); } });
       if (entry.rest) { mg.rogue += 30; did.rogue.push("Lunch prep"); }
+      if (gXp) { mg.wizard += gXp; did.wizard.push(fmtHM(gameHours(k)) + " of game time"); }
       const hurtBy = {}; dmg.forEach(d => hurtBy[d.id] = (hurtBy[d.id] || 0) + d.n);
       PARTY.forEach(p => {
         const m = S.members[p.id]; const before = m.lv;
@@ -300,7 +302,7 @@
     $("xpLabel").textContent = (G.xp - lo) + " / " + (hi - lo) + " XP to level " + (G.level + 1);
     $("xpBar").style.width = ((G.xp - lo) / (hi - lo) * 100) + "%";
     const t = evaluateDay(todayKey(), G.level);
-    const pendingXp = 10 * (t.doneDaily.length + t.doneExtra.length) + 15 * t.doneWeekly.length + 10 * t.ms;
+    const pendingXp = 10 * (t.doneDaily.length + t.doneExtra.length) + 15 * t.doneWeekly.length + 10 * t.ms + Math.round(GAME_XP * gameXpHours(todayKey()));
     $("xpToday").textContent = pendingXp ? "+" + pendingXp + " XP tonight, banked at midnight" : "";
   }
 
@@ -333,7 +335,62 @@
   function nowMins() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
   function inFreeTime() { const m = nowMins(); return m >= FREE || m < 4 * 60; }
   /* ---------- weekend game time ---------- */
-  const GAME_MIN = 7, GAME_MAX = 10;
+  const GAME_MIN = 7, GAME_MAX = 10, GAME_XP = 5, GAME_WEEKDAY_CAP = 2.5;
+  function fmtHM(h) { const m = Math.round((Number(h) || 0) * 60); return m < 60 ? m + " min" : Math.floor(m / 60) + " h" + (m % 60 ? " " + (m % 60) + " min" : ""); }
+  // game hours that earn XP: up to 2.5 h on a weekday, up to 10 h across a weekend
+  function gameXpHours(k) {
+    const h = gameHours(k), w = dow(k);
+    if (w === 6) return Math.min(h, GAME_MAX);
+    if (w === 0) return Math.min(h, Math.max(0, GAME_MAX - Math.min(gameHours(addDays(k, -1)), GAME_MAX)));
+    return Math.min(h, GAME_WEEKDAY_CAP);
+  }
+  /* ---------- game session stopwatch (synced, so it runs on every device) ---------- */
+  let gameSession = { startAt: null }, gameTicks = 0;
+  function sessionMs() { return gameSession.startAt ? Math.max(0, Date.now() - gameSession.startAt) : 0; }
+  function fmtStopwatch(ms) { const t = Math.floor(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return h + ":" + pad(m) + ":" + pad(sec); }
+  function startGame() {
+    if (!ready() || gameSession.startAt) return;
+    gameSession = { startAt: Date.now() }; sfx("draw");
+    queueSet("session", "game", { startAt: gameSession.startAt, startedOn: todayKey() }); renderAll();
+  }
+  function stopGame() {
+    const s = gameSession.startAt; if (!s || !ready()) return;
+    const end = Date.now(); let t = s; const added = [];
+    while (t < end) {
+      const d = new Date(t), k = keyOf(d), next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime(), segEnd = Math.min(end, next);
+      const hrs = (segEnd - t) / 3600000; added.push([k, hrs]);
+      setGame(k, Math.min(24, Math.round((gameHours(k) + hrs) * 100) / 100)); t = segEnd;
+    }
+    gameSession = { startAt: null }; sfx("coins");
+    queueSet("session", "game", { startAt: null, last: { start: s, end } });
+    const mins = Math.round((end - s) / 60000);
+    gameToast("Logged " + fmtHM(mins / 60) + " of game time" + (mins >= 6 ? " · Ismay gains XP at midnight" : ""));
+    renderAll();
+  }
+  function gameToast(text) {
+    let t = $("gameToast"); if (!t) { t = document.createElement("div"); t.id = "gameToast"; t.className = "gtoast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+    t.textContent = text; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3500);
+  }
+  function gameWidget(k) {
+    const w = document.createElement("div"); w.className = "gsess" + (gameSession.startAt ? " on" : "");
+    if (k !== todayKey()) return null;
+    if (gameSession.startAt) {
+      w.innerHTML = '<span class="gs-dot" aria-hidden="true"></span><div class="gs-main"><span class="gs-clock mono" data-gclock></span><small>Game session · started ' + new Date(gameSession.startAt).toTimeString().slice(0, 5) + '</small></div>';
+      w.querySelector("[data-gclock]").textContent = fmtStopwatch(sessionMs());
+      w.appendChild(mkBtn("■ Stop & log", "btn-main", stopGame));
+    } else {
+      w.innerHTML = '<div class="gs-main"><b>🎮 Game time</b><small>' + (gameHours(k) ? fmtHM(gameHours(k)) + " logged today" : "Start the timer when you start playing") + '</small></div>';
+      w.appendChild(mkBtn("▶ Start", "btn-main", startGame));
+    }
+    return w;
+  }
+  setInterval(() => {
+    const on = !!gameSession.startAt, pill = $("gamePill");
+    if (pill) pill.hidden = !on;
+    if (!on) return;
+    document.querySelectorAll("[data-gclock]").forEach(e => { e.textContent = fmtStopwatch(sessionMs()); });
+    if (++gameTicks % 60 === 0 && tab === "tonight" && document.visibilityState === "visible") renderAll();
+  }, 1000);
   function isWeekend(k) { const w = dow(k); return w === 0 || w === 6; }
   function gameHours(k) { return Number(days[k] && days[k].game) || 0; }
   function renderWeekend() {
@@ -352,7 +409,8 @@
     }
     if (!wk) return;
     const sat = dow(viewDate) === 6 ? viewDate : addDays(viewDate, -1), sun = addDays(sat, 1);
-    const total = gameHours(sat) + gameHours(sun), mine = gameHours(viewDate);
+    const live = gameSession.startAt && viewDate === todayKey() ? sessionMs() / 3600000 : 0;
+    const total = gameHours(sat) + gameHours(sun) + live, mine = gameHours(viewDate);
     const isSat = viewDate === sat;
     const choresLeft = habitsOn(viewDate).filter(h => dueOn(h, viewDate) && !isDone(h.id, viewDate) && h.group !== FREE_GROUP).length;
     const nextPlan = planOf(addDays(viewDate, 1));
@@ -365,12 +423,13 @@
     else status = "Duties done for today. The rest of the day is game time.";
     box.innerHTML =
       '<div class="eyebrow">Weekend · ' + (lab ? "Lab day: wild card played" : isSat ? "Saturday: chores block, then play" : "Sunday: lunch prep, then play") + '</div>' +
-      '<div class="between"><h2>Game time</h2><span class="mono small muted">' + total + ' h this weekend · goal ' + GAME_MIN + '–' + GAME_MAX + ' h</span></div>' +
+      '<div class="between"><h2>Game time</h2><span class="mono small muted">' + fmtHM(total) + ' this weekend · goal ' + GAME_MIN + '–' + GAME_MAX + ' h</span></div>' +
       '<div class="gamebar"><span class="gfill" style="width:' + pct + '%"></span><span class="gmin" style="left:' + minPct + '%"></span></div>' +
       '<p class="small muted"></p>' +
-      '<div class="row"><span class="small">Played ' + (isSat ? "Saturday" : "Sunday") + ':</span><span class="stepper"><button type="button" id="gMinus" aria-label="Half an hour less">−</button><span class="mono small" style="min-width:3.5em;text-align:center">' + mine + ' h</span><button type="button" id="gPlus" aria-label="Half an hour more">+</button></span><button type="button" class="btn-small" id="gPlus2">+2 h</button></div>';
+      '<div class="row"><span class="small">Played ' + (isSat ? "Saturday" : "Sunday") + ':</span><span class="stepper"><button type="button" id="gMinus" aria-label="Half an hour less">−</button><span class="mono small" style="min-width:4.5em;text-align:center">' + fmtHM(mine) + '</span><button type="button" id="gPlus" aria-label="Half an hour more">+</button></span><button type="button" class="btn-small" id="gPlus2">+2 h</button></div>';
     box.querySelector("p").textContent = status;
-    const set = v => setGame(viewDate, Math.max(0, Math.min(16, v)));
+    const gw = gameWidget(viewDate); if (gw) box.insertBefore(gw, box.querySelector(".row"));
+    const set = v => setGame(viewDate, Math.max(0, Math.min(16, Math.round(v * 100) / 100)));
     $("gMinus").onclick = () => set(mine - 0.5); $("gPlus").onclick = () => set(mine + 0.5); $("gPlus2").onclick = () => set(mine + 2);
     const lr = document.createElement("div"); lr.className = "row";
     const lk = "lab:" + viewDate;
@@ -386,6 +445,7 @@
 
   function renderTimeline() {
     renderWeekend();
+    const gb = $("gameSessBox"); if (gb) { gb.innerHTML = ""; const gw = !isWeekend(viewDate) ? gameWidget(viewDate) : null; if (gw) gb.appendChild(gw); }
     const isToday = viewDate === todayKey();
     const d = new Date(), mins = nowMins();
     const dot = $("nowDot"), fill = $("fill"), note = $("tlNote");
@@ -1697,6 +1757,7 @@
   }
   try { $("soundOn").checked = soundOn(); } catch (e) {}
   $("soundOn").onchange = e => { try { localStorage.setItem("eah-sound", e.target.checked ? "1" : "0"); } catch (x) {} if (e.target.checked) { audioCtx(); setTimeout(() => sfx("tick"), 300); } };
+  $("gamePill").onclick = () => { setTab("tonight"); setTimeout(() => { const g = document.querySelector(".gsess"); if (g) g.scrollIntoView({ behavior: "smooth", block: "center" }); }, 60); };
   $("focusPause").onclick = () => {
     if (!timer) return;
     if (timer.paused != null) { timer.endAt = Date.now() + timer.paused; timer.paused = null; } else timer.paused = timerLeft();
@@ -1725,6 +1786,7 @@
     db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); daysLoaded = true; renderAll(); }, err("Check-ins"));
     db.collection("recipes").onSnapshot(s => { recipes = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { name: String(d.data().name || "Untitled") })); renderAll(); }, err("Recipes"));
     db.collection("plans").onSnapshot(s => { const p = {}; s.docs.forEach(d => { const x = d.data(); p[d.id] = { week: d.id, recipes: Array.isArray(x.recipes) ? x.recipes : [], dinners: Array.isArray(x.dinners) ? x.dinners : [], extras: Array.isArray(x.extras) ? x.extras : [], brewed: x.brewed || {}, got: x.got || {}, steps: x.steps || {}, skipped: !!x.skipped }; }); plans = p; renderAll(); }, err("Lunch plans"));
+    db.doc("session/game").onSnapshot(s => { const x = s.exists ? s.data() : {}; gameSession = { startAt: Number(x.startAt) || null }; renderAll(); }, err("Game timer"));
     db.doc("shop/list").onSnapshot(s => { const x = s.exists ? s.data() : {}; shop = { items: Array.isArray(x.items) ? x.items.filter(i => i && i.id && i.text).map(i => ({ id: String(i.id), text: String(i.text), got: !!i.got })) : [], recent: Array.isArray(x.recent) ? x.recent.map(String).slice(0, 16) : [] }; renderAll(); }, err("Shopping list"));
     db.collection("quests").onSnapshot(s => { quests = s.docs.map(d => Object.assign({ id: d.id }, d.data(), { title: String(d.data().title || "Quest") })); renderAll(); }, err("Quests"));
     db.collection("rewards").onSnapshot(s => { rewards = s.docs.map(d => ({ id: d.id, name: String(d.data().name || "Reward"), cost: Number(d.data().cost) || 0 })); renderAll(); }, err("Rewards"));

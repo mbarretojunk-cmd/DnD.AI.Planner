@@ -21,6 +21,7 @@
     <div class="top-title"><div class="eyebrow">Evenings at Home</div><h1 id="sectionTitle">Tonight</h1></div>
     <div class="stats" aria-label="Party stats">
       <span data-tip="Party level. Every finished task gives XP, banked at midnight. Each new level fully heals the party and raises max HP.">Lv <b id="sLevel">1</b></span>
+      <button type="button" class="gpill" id="gamePill" hidden data-tip="A game session is running. Tap to see it and stop it.">🎮 <b data-gclock>0:00:00</b></button>
       <span data-tip="Gold. Won nights fill the purse; a lost night costs a quarter of it. Spend it on real treats under Party → Rewards."><b id="sGold">0</b> g</span>
     </div>
   </header>
@@ -52,6 +53,7 @@
       <div class="track" id="track" data-tip="Your evening: duty time for chores from 18:30, free time from 21:30 until midnight, when the fight is scored. The dot is now."><div class="rail"></div><div class="fill" id="fill"></div></div>
       <div class="scale" id="scale"></div>
       <p class="small muted" id="tlNote" style="margin-top:6px"></p>
+      <div id="gameSessBox"></div>
     </div>
     </section>
     <section class="todo" aria-live="polite">
@@ -136,6 +138,7 @@
           <li>Hits past the 6 are bonus loot: their XP plus 5 gold each when the monster falls.</li>
           <li>A win gives XP, gold and 2 HP of healing to everyone. A loss costs 10 XP, a quarter of your gold and 2 damage to everyone. Unfinished lunch prep or an overdue quest costs Wren 5.</li>
           <li>If the monster survives, each missing hit lets an open must-do strike the member who guards it for 4 damage, and never the same member twice in one night: Food &amp; home → the cleric, House duties → the fighter, Cat care → the familiar, Free time → the wizard, lunch prep and quests → the rogue. Habits set to specific weekdays count as daily on those days.</li>
+          <li>Game time: start the game timer when you play and stop it when you're done; the time is logged to that day. Ismay earns 5 XP per hour, up to 2.5 h on a weekday and 10 h across a weekend.</li>
           <li>Weekly habits are checked on Sunday at midnight. Each missing session deals 3 damage, at most 6 per habit.</li>
           <li>Finished habits heal their guardian by 3 HP. Finishing Sunday lunch prep gives a long rest: everyone fully healed and back on their feet.</li>
           <li>A member at 0 HP goes down. They get back up after two wins in a row.</li>
