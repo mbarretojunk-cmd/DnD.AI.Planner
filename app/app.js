@@ -1288,7 +1288,7 @@
     days[k] = next; renderAll();
     queueSet("days", k, Object.assign({}, next, { updatedAt: new Date().toISOString() }));
   }
-  const REST_PER_MONTH = 2;
+  const REST_PER_MONTH = 6;
   function restLeft(k) { const m = k.slice(0, 7); return REST_PER_MONTH - Object.keys(days).filter(d => d.slice(0, 7) === m && days[d].rest).length; }
   function savePlan(p) { if (!ready()) return; plans[p.week] = p; renderAll(); queueSet("plans", p.week, Object.assign({}, p, { updatedAt: new Date().toISOString() })); }
   function saveQuest(q) {
