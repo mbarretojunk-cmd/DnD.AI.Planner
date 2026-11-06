@@ -1200,7 +1200,9 @@
    "group": "food",
    "name": "Clean up the kitchen after dinner: dishes, counters, hob, sink",
    "order": 3,
-   "perWeek": 7
+   "perWeek": 7,
+   "after": "cook-dinner",
+   "afterDays": 0
   },
   "habits/bathroom-clean": {
    "createdAt": "2026-10-25",
@@ -1257,7 +1259,7 @@
    "link": "dinner",
    "name": "Cook a proper dinner",
    "order": 1,
-   "perWeek": 7
+   "perWeek": 3
   },
   "habits/kitchen-deep": {
    "createdAt": "2026-10-26",
@@ -1370,7 +1372,7 @@
    "group": "house",
    "name": "15-minute tidy",
    "order": 4,
-   "perWeek": 7,
+   "perWeek": 3,
    "note": "Put things back where they live · Clear the table, desk and sofa · Cups and dishes to the kitchen · Clothes to the basket or wardrobe · Rubbish and recycling out · Stop when the timer ends: no deep cleaning"
   },
   "habits/laundry-fold": {

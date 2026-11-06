@@ -141,12 +141,14 @@ function compose(docs, now, slot) {
   if ((dow === 6 || dow === 0) && game.startDate) {
     const mon = addDays(today, -((dow + 6) % 7)), dDow = k => new Date(k + "T12:00:00Z").getUTCDay();
     const labOn = k => !!((docs.get("days/" + k) || {}).lab);
+    const restOn = k => !!((docs.get("days/" + k) || {}).rest);
+    let restDays = 0; for (let i = 0; i < 7; i++) if (restOn(addDays(mon, i))) restDays++;
     habits.forEach(h => {
       if (h.group === "cat" || h.group === "hobby" || h.after || Number(h.everyDays) >= 2) return;
       if (Array.isArray(h.days) && h.days.length) {
-        if (isDue(h)) return;
+        if (isDue(h) || h.group === "food") return;
         for (let i = 0; i < 5; i++) {
-          const d = addDays(mon, i); if (d >= today || d < game.startDate || labOn(d) || !h.days.includes(dDow(d))) continue;
+          const d = addDays(mon, i); if (d >= today || d < game.startDate || labOn(d) || restOn(d) || !h.days.includes(dDow(d))) continue;
           const ew = Number(h.everyWeeks) || 1; if (ew > 1 && (((weekIndex(d) - (Number(h.weekOffset) || 0)) % ew) + ew) % ew !== 0) continue;
           if (done(h.id, d)) continue;
           let caught = false; for (let e = addDays(d, 1); e < today; e = addDays(e, 1)) if (done(h.id, e)) caught = true;
@@ -154,7 +156,7 @@ function compose(docs, now, slot) {
         }
       } else if (Number(h.perWeek) < 7 && mon >= game.startDate) {
         let c = 0; for (let e = mon; e < today; e = addDays(e, 1)) if (done(h.id, e)) c++;
-        if (c < Number(h.perWeek)) catchUp.add(h.id);
+        if (c < Math.ceil(Number(h.perWeek) * (7 - restDays) / 7)) catchUp.add(h.id);
       }
     });
   }
@@ -165,7 +167,7 @@ function compose(docs, now, slot) {
   const bossIds = new Set(boss.map(h => h.id));
   const mustNeed = Math.min(4, boss.length), mustDone = boss.filter(h => done(h.id, today)).length;
   const otherDone = habits.filter(h => !bossIds.has(h.id) && done(h.id, today)).length;
-  const need = Math.min(6, habits.length), anyNeed = need - mustNeed;
+  const need = Math.min(6, mustNeed + 2, habits.length), anyNeed = need - mustNeed;
   const hits = Math.min(mustDone, mustNeed) + Math.min(anyNeed, Math.max(0, mustDone - mustNeed) + otherDone);
   const open = hits >= need ? [] : boss.filter(h => !done(h.id, today))
     .sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || (a.order || 0) - (b.order || 0));

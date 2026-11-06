@@ -85,7 +85,9 @@
   function activeOn(h, k) { return createdKey(h) <= k && (!h.archivedAt || h.archivedAt > k); }
   function isDone(hid, k) { return !!(days[k] && days[k].done && days[k].done[hid]); }
   function weekCountTo(hid, k) { const m = mondayOf(k); let c = 0; for (let d = m; d <= k; d = addDays(d, 1)) if (isDone(hid, d)) c++; return c; }
-  function habitsOn(k) { return habitsAll.filter(h => activeOn(h, k)).sort((a, b) => (a.order || 0) - (b.order || 0)); }
+  // a habit's schedule as it was on day k: schedule changes never rewrite past nights
+  function asOf(h, k) { if (!h.past) return h; const p = h.past.filter(x => x && x.until && k < x.until).sort((a, b) => (a.until < b.until ? -1 : 1))[0]; return p ? Object.assign({}, h, p.values || {}) : h; }
+  function habitsOn(k) { return habitsAll.filter(h => activeOn(h, k)).map(h => asOf(h, k)).sort((a, b) => (a.order || 0) - (b.order || 0)); }
   function visibleHabits() { return habitsAll.filter(h => !h.archivedAt).sort((a, b) => (a.order || 0) - (b.order || 0)); }
   const DAYNAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -146,6 +148,8 @@
   const STRIKE = 4, LOSS_ALL = 2, WEEKLY_MISS = 3, WEEKLY_CAP = 6, ROGUE_MISS = 5;
   // which due tasks the monster is made of, most important first:
   // cat basics, then that day's scheduled chores and follow-ups, then food, then daily house, then free time
+  // a weekly target shrinks with the rest days taken that week (3x a week with 2 rest days → 2x)
+  function weeklyGoal(h, k) { const mon = mondayOf(k); let rest = 0; for (let i = 0; i < 7; i++) { const d = addDays(mon, i); if (days[d] && days[d].rest) rest++; } return Math.ceil(h.perWeek * (7 - rest) / 7); }
   // weekends: chores missed on weekdays (and weekly targets still short) come back first in line
   function catchUps(k) {
     const out = new Map(), w = dow(k), start = game.startDate;
@@ -153,17 +157,18 @@
     const mon = mondayOf(k);
     habitsOn(k).forEach(h => {
       if (h.group === "cat" || h.group === FREE_GROUP || isAfter(h) || everyDays(h) || h.archivedAt) return;
+      if (isScheduled(h) && h.group === "food") return;   // e.g. moving a lunch box: its day has passed
       if (isScheduled(h)) {
         if (mustDo(h, k)) return;
         for (let i = 0; i < 5; i++) {
-          const d = addDays(mon, i); if (d >= k || d < start || !activeOn(h, d)) continue;
+          const d = addDays(mon, i); if (d >= k || d < start || !activeOn(h, d) || (days[d] && days[d].rest)) continue;
           if (mustDo(h, d) && !isDone(h.id, d)) {
             let caught = false; for (let e = addDays(d, 1); e < k; e = addDays(e, 1)) if (isDone(h.id, e)) caught = true;
             if (!caught) { out.set(h.id, "missed " + DAYNAMES[dow(d)]); break; }
           }
         }
       } else if (isWeekly(h) && mon >= start) {
-        const left = h.perWeek - weekCountTo(h.id, addDays(k, -1));
+        const left = weeklyGoal(h, k) - weekCountTo(h.id, addDays(k, -1));
         if (left > 0) out.set(h.id, left + " still to do this week");
       }
     });
@@ -192,7 +197,7 @@
     // the monster takes 6 hits: at least 4 from tonight's must-dos, the rest from anything.
     // hits past that are bonus loot.
     const mustNeed = Math.min(MUST_MIN, daily.length);
-    const need = Math.min(BOSS_MAX, daily.length + extraDue.length + weekly.length + ms);
+    const need = Math.min(BOSS_MAX, mustNeed + 2, daily.length + extraDue.length + weekly.length + ms);   // light days get a smaller monster
     const anyNeed = need - mustNeed;
     const otherDone = doneExtra.length + doneWeekly.length + ms;
     const mustHits = Math.min(doneDaily.length, need);
@@ -248,7 +253,7 @@
         const mon = mondayOf(k);
         if (mon >= start && !isLab(k)) {
           habitsOn(k).filter(h => isWeekly(h) && createdKey(h) <= mon).forEach(h => {
-            const short = h.perWeek - weekCountTo(h.id, k);
+            const short = weeklyGoal(h, k) - weekCountTo(h.id, k);
             if (short > 0) { hurt(GROUPS[h.group].member, Math.min(WEEKLY_CAP, WEEKLY_MISS * short), dmg); entry.notes.push(h.name + ": " + short + " short this week"); }
           });
         }
@@ -1882,7 +1887,7 @@
     const err = what => () => showNotice(what + " stopped updating. Reload the page.");
     db.doc("game/state").onSnapshot(s => { game = s.exists ? Object.assign({ startDate: null }, s.data()) : { startDate: null }; applyNames(); renderRenameFields(); renderAll(); }, err("Game data"));
     db.collection("habits").onSnapshot(s => {
-      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null, minutes: timedMinutes(x), note: String(x.note || "").slice(0, 400), everyDays: Number(x.everyDays) || 0, anchor: /^\d{4}-\d{2}-\d{2}$/.test(String(x.anchor || "")) ? String(x.anchor) : null }; });
+      habitsAll = s.docs.map(d => { const x = d.data(); return { id: d.id, name: String(x.name || "Untitled"), group: GROUPS[x.group] ? x.group : "hobby", perWeek: Math.min(7, Math.max(1, Number(x.perWeek) || 7)), order: Number(x.order) || 0, createdAt: String(x.createdAt || ""), archivedAt: x.archivedAt || null, days: Array.isArray(x.days) ? x.days.map(Number).filter(n => n >= 0 && n <= 6) : null, rotation: Array.isArray(x.rotation) ? x.rotation.map(String).slice(0, 52) : null, everyWeeks: Number(x.everyWeeks) || 1, weekOffset: Number(x.weekOffset) || 0, after: x.after ? String(x.after) : null, afterDays: Number(x.afterDays) || 0, link: x.link ? String(x.link) : null, minutes: timedMinutes(x), note: String(x.note || "").slice(0, 400), past: Array.isArray(x.past) ? x.past : null, everyDays: Number(x.everyDays) || 0, anchor: /^\d{4}-\d{2}-\d{2}$/.test(String(x.anchor || "")) ? String(x.anchor) : null }; });
       renderAll();
     }, err("Habits"));
     db.collection("days").orderBy("date", "desc").limit(500).onSnapshot(s => { s.docs.forEach(d => { const x = d.data(); days[d.id] = { date: d.id, done: Object.assign({}, x.done || {}), game: Number(x.game) || 0, rest: !!x.rest, lab: !!x.lab }; }); daysLoaded = true; renderAll(); }, err("Check-ins"));
@@ -1896,8 +1901,25 @@
     fillRecipeMeta(db);
     migrateCats(db);
     migrateCatsV2(db);
+    setTimeout(() => migrateChoresV1(db), 2500);
   })();
 
+  // one-time: everyday chores become 2-3 times a week (cooking 3x with the kitchen clean-up after it, the tidy 3x)
+  async function migrateChoresV1(db, tries) {
+    tries = tries || 0;
+    if (!daysLoaded || !habitsAll.length) { if (tries < 40) setTimeout(() => migrateChoresV1(db, tries + 1), 500); return; }
+    try {
+      const flag = await db.doc("game/migrations").get(), m = flag.exists ? flag.data() : {};
+      if (m.choresV1) return;
+      const h = id => habitsAll.find(x => x.id === id && !x.archivedAt);
+      const t = todayKey(), keep = (x, values) => (x.past || []).concat([{ until: t, values }]);   // the old schedule still applies before today
+      if (h("cook-dinner")) await db.doc("habits/cook-dinner").update({ perWeek: 3, past: keep(h("cook-dinner"), { perWeek: 7 }) });
+      if (h("dishes") && h("cook-dinner")) await db.doc("habits/dishes").update({ after: "cook-dinner", afterDays: 0, perWeek: 7, past: keep(h("dishes"), { perWeek: 7, after: null, afterDays: 0 }) });
+      if (h("tidy-15")) await db.doc("habits/tidy-15").update({ perWeek: 3, past: keep(h("tidy-15"), { perWeek: 7 }) });
+      const cur = await db.doc("game/migrations").get();
+      await db.doc("game/migrations").set(Object.assign({}, cur.exists ? cur.data() : {}, { choresV1: todayKey() }));
+    } catch (e) { console.warn("Chore schedule update failed", e); }
+  }
   // one-time (v2): water and wet food are separate again, so the cat's care feels rewarding; the tidy gets a checklist
   async function migrateCatsV2(db, tries) {
     tries = tries || 0;
